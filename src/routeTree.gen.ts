@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ProductsRouteImport } from './routes/products'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as CustomersRouteImport } from './routes/customers'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobsRoute = JobsRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,28 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/customers' | '/history' | '/jobs' | '/reports'
+  fullPaths:
+    | '/'
+    | '/customers'
+    | '/history'
+    | '/jobs'
+    | '/products'
+    | '/reports'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/customers' | '/history' | '/jobs' | '/reports'
-  id: '__root__' | '/' | '/customers' | '/history' | '/jobs' | '/reports'
+  to: '/' | '/customers' | '/history' | '/jobs' | '/products' | '/reports'
+  id:
+    | '__root__'
+    | '/'
+    | '/customers'
+    | '/history'
+    | '/jobs'
+    | '/products'
+    | '/reports'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +98,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   HistoryRoute: typeof HistoryRoute
   JobsRoute: typeof JobsRoute
+  ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
 }
 
@@ -86,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jobs': {
@@ -124,6 +154,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   HistoryRoute: HistoryRoute,
   JobsRoute: JobsRoute,
+  ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
 }
 export const routeTree = rootRouteImport
