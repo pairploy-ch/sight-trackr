@@ -79,82 +79,18 @@ function RxTable({ rows, headers }: { headers: string[]; rows: (string | number)
 }
 
 function Index() {
-  const [sidebarOpen] = useState(true);
-
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "w-64" : "w-0"} shrink-0 bg-sidebar text-sidebar-foreground flex flex-col transition-all`}>
-        <div className="px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
-          <div className="rounded-lg bg-sidebar-primary p-2"><Glasses className="h-6 w-6 text-sidebar-primary-foreground" /></div>
-          <div>
-            <div className="font-bold tracking-wide">MARINA OPTICAL</div>
-            <div className="text-xs text-sidebar-foreground/70">VISION CARE SYSTEM</div>
-          </div>
+    <AppShell
+      title={
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">ใบงานเลขที่</span>
+          <span className="text-3xl font-bold text-primary leading-none">217</span>
+          <span className="text-sm text-muted-foreground ml-3">วันที่ 12/05/2567</span>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((it) => (
-            <button
-              key={it.label}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                it.active
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow"
-                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent"
-              }`}
-            >
-              <span className="flex items-center gap-3"><it.icon className="h-4 w-4" />{it.label}</span>
-              {it.hasChild && <ChevronRight className="h-4 w-4 opacity-60" />}
-            </button>
-          ))}
-        </nav>
-        <div className="px-3 pb-4">
-          <button className="w-full flex items-center justify-center gap-2 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3 text-sm hover:bg-sidebar-accent">
-            <ScanBarcode className="h-5 w-5" /> สแกนบาร์โค้ด
-          </button>
-          <div className="mt-4 text-xs text-sidebar-foreground/60 text-center">
-            <div className="font-semibold text-sidebar-foreground/80">MARINA OPTICAL</div>
-            <div>© 2024 All Rights Reserved</div>
-            <div>Version 1.0.0</div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 min-w-0">
-        {/* Topbar */}
-        <header className="flex items-center justify-between px-6 py-3 bg-card border-b border-border">
-          <div className="flex items-center gap-4">
-            <button className="p-2 rounded-md hover:bg-secondary"><Menu className="h-5 w-5" /></button>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">ใบงานเลขที่</span>
-              <span className="text-3xl font-bold text-primary">217</span>
-              <button className="p-2 rounded-md hover:bg-secondary"><FileIcon className="h-4 w-4 text-primary" /></button>
-            </div>
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-sm text-muted-foreground">วันที่</span>
-              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm">
-                12/05/2567 <Calendar className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-md hover:bg-secondary">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">3</span>
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-primary font-semibold">A</div>
-              <div className="text-right">
-                <div className="text-sm font-semibold">Admin</div>
-                <div className="text-xs text-muted-foreground">ผู้ดูแลระบบ</div>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 p-6">
+      }
+      subtitle="ใบสั่งเลนส์ดิจิทัล — Customer Vision Record"
+    >
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 p-6">
           <div className="space-y-6 min-w-0">
             {/* Customer info */}
             <SectionCard title="ข้อมูลลูกค้า">
@@ -398,8 +334,7 @@ function Index() {
               </button>
             </SectionCard>
           </aside>
-        </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
