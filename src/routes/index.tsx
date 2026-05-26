@@ -1,27 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import {
-  Glasses, Home, Users, FileText, History, Clock, BarChart3,
-  Package, Settings, UserCog, ScanBarcode, Menu, Bell, ChevronDown,
-  CheckCircle2, Circle, FileIcon, Plus, Save, FilePlus, Printer,
-  FileDown, Send, Trash2, Calendar, ChevronRight,
+  Glasses, CheckCircle2, Circle, FileIcon, Plus, Save, FilePlus, Printer,
+  FileDown, Send, Trash2, Calendar,
 } from "lucide-react";
+import { AppShell, SectionCard } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "ใบงาน #217 — MARINA OPTICAL" },
+      { name: "description", content: "ใบสั่งเลนส์ดิจิทัล / Vision Record" },
+    ],
+  }),
   component: Index,
 });
-
-const navItems = [
-  { icon: Home, label: "หน้าหลัก", active: true },
-  { icon: Users, label: "ลูกค้า" },
-  { icon: FileText, label: "ใบงาน / ใบสั่งเลนส์", hasChild: true },
-  { icon: History, label: "ประวัติลูกค้า", hasChild: true },
-  { icon: Clock, label: "งานที่กำลังดำเนินการ", hasChild: true },
-  { icon: BarChart3, label: "รายงาน", hasChild: true },
-  { icon: Package, label: "สินค้า / เลนส์", hasChild: true },
-  { icon: Settings, label: "ตั้งค่า", hasChild: true },
-  { icon: UserCog, label: "ผู้ใช้งาน" },
-];
 
 const statusSteps = [
   { label: "รับออเดอร์แล้ว", time: "12/05/2567 14:32", state: "done" },
@@ -31,17 +23,6 @@ const statusSteps = [
   { label: "พร้อมรับ", state: "pending" },
   { label: "ส่งมอบแล้ว", state: "pending" },
 ];
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
-      <div className="px-5 py-3 border-b border-border">
-        <h2 className="text-base font-semibold text-primary">{title}</h2>
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
