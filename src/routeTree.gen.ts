@@ -13,6 +13,7 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as CustomersRouteImport } from './routes/customers'
@@ -36,6 +37,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ProductsRoute = ProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobsRoute = JobsRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   HistoryRoute: typeof HistoryRoute
   JobsRoute: typeof JobsRoute
+  LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jobs': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   HistoryRoute: HistoryRoute,
   JobsRoute: JobsRoute,
+  LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
