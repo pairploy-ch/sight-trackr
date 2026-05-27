@@ -46,9 +46,9 @@ function CustomersPage() {
                 className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
-            <button className="w-full flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90">
+            <Link to="/customers/new" className="w-full flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90">
               <Plus className="h-4 w-4" /> เพิ่มลูกค้าใหม่
-            </button>
+            </Link>
           </div>
           <div className="overflow-y-auto divide-y divide-border">
             {filtered.map((c) => {
@@ -91,7 +91,7 @@ function CustomersPage() {
                 <Link to="/history" className="text-sm rounded-md border border-border px-3 py-1.5 hover:bg-secondary">
                   ดูประวัติเก่า
                 </Link>
-                <Link to="/" className="text-sm rounded-md bg-primary text-primary-foreground px-3 py-1.5 hover:opacity-90">
+                <Link to="/jobs/new" className="text-sm rounded-md bg-primary text-primary-foreground px-3 py-1.5 hover:opacity-90">
                   สร้างใบงานใหม่
                 </Link>
               </div>

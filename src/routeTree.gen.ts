@@ -13,10 +13,13 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JobsNewRouteImport } from './routes/jobs.new'
+import { Route as CustomersNewRouteImport } from './routes/customers.new'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -36,6 +39,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ProductsRoute = ProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobsRoute = JobsRouteImport.update({
@@ -58,37 +66,56 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JobsNewRoute = JobsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => JobsRoute,
+} as any)
+const CustomersNewRoute = CustomersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CustomersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/history': typeof HistoryRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/customers/new': typeof CustomersNewRoute
+  '/jobs/new': typeof JobsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/history': typeof HistoryRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/customers/new': typeof CustomersNewRoute
+  '/jobs/new': typeof JobsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/history': typeof HistoryRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/customers/new': typeof CustomersNewRoute
+  '/jobs/new': typeof JobsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,37 +124,47 @@ export interface FileRouteTypes {
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
     | '/users'
+    | '/customers/new'
+    | '/jobs/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
     | '/users'
+    | '/customers/new'
+    | '/jobs/new'
   id:
     | '__root__'
     | '/'
     | '/customers'
     | '/history'
     | '/jobs'
+    | '/login'
     | '/products'
     | '/reports'
     | '/settings'
     | '/users'
+    | '/customers/new'
+    | '/jobs/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CustomersRoute: typeof CustomersRoute
+  CustomersRoute: typeof CustomersRouteWithChildren
   HistoryRoute: typeof HistoryRoute
-  JobsRoute: typeof JobsRoute
+  JobsRoute: typeof JobsRouteWithChildren
+  LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -164,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs': {
       id: '/jobs'
       path: '/jobs'
@@ -192,14 +236,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jobs/new': {
+      id: '/jobs/new'
+      path: '/new'
+      fullPath: '/jobs/new'
+      preLoaderRoute: typeof JobsNewRouteImport
+      parentRoute: typeof JobsRoute
+    }
+    '/customers/new': {
+      id: '/customers/new'
+      path: '/new'
+      fullPath: '/customers/new'
+      preLoaderRoute: typeof CustomersNewRouteImport
+      parentRoute: typeof CustomersRoute
+    }
   }
 }
 
+interface CustomersRouteChildren {
+  CustomersNewRoute: typeof CustomersNewRoute
+}
+
+const CustomersRouteChildren: CustomersRouteChildren = {
+  CustomersNewRoute: CustomersNewRoute,
+}
+
+const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
+  CustomersRouteChildren,
+)
+
+interface JobsRouteChildren {
+  JobsNewRoute: typeof JobsNewRoute
+}
+
+const JobsRouteChildren: JobsRouteChildren = {
+  JobsNewRoute: JobsNewRoute,
+}
+
+const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CustomersRoute: CustomersRoute,
+  CustomersRoute: CustomersRouteWithChildren,
   HistoryRoute: HistoryRoute,
-  JobsRoute: JobsRoute,
+  JobsRoute: JobsRouteWithChildren,
+  LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,

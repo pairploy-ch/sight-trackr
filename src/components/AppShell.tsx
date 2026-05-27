@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Glasses, Home, Users, FileText, History, Clock, BarChart3,
   Package, Settings, UserCog, ScanBarcode, Menu, Bell, ChevronDown,
-  ChevronRight,
+  ChevronRight, Plus, LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -89,6 +89,12 @@ export function AppShell({
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <Link
+              to="/jobs/new"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" /> สร้างใบงานใหม่
+            </Link>
             <button className="relative p-2 rounded-md hover:bg-secondary">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">3</span>
@@ -100,6 +106,9 @@ export function AppShell({
                 <div className="text-xs text-muted-foreground">ผู้ดูแลระบบ</div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <Link to="/login" title="ออกจากระบบ" className="p-2 rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive">
+                <LogOut className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </header>
