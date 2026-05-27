@@ -22,6 +22,7 @@ import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as JobsNewRouteImport } from './routes/jobs.new'
 import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
+import { Route as JobsIdPrintRouteImport } from './routes/jobs.$id.print'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -88,6 +89,11 @@ const CustomersNewRoute = CustomersNewRouteImport.update({
   path: '/new',
   getParentRoute: () => CustomersRoute,
 } as any)
+const JobsIdPrintRoute = JobsIdPrintRouteImport.update({
+  id: '/print',
+  path: '/print',
+  getParentRoute: () => JobsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,10 +105,11 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
-  '/jobs/$id': typeof JobsIdRoute
+  '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/customers/': typeof CustomersIndexRoute
   '/jobs/': typeof JobsIndexRoute
+  '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -112,10 +119,11 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
-  '/jobs/$id': typeof JobsIdRoute
+  '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/customers': typeof CustomersIndexRoute
   '/jobs': typeof JobsIndexRoute
+  '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -128,10 +136,11 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
-  '/jobs/$id': typeof JobsIdRoute
+  '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/customers/': typeof CustomersIndexRoute
   '/jobs/': typeof JobsIndexRoute
+  '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/customers/'
     | '/jobs/'
+    | '/jobs/$id/print'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/customers'
     | '/jobs'
+    | '/jobs/$id/print'
   id:
     | '__root__'
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/customers/'
     | '/jobs/'
+    | '/jobs/$id/print'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -283,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersNewRouteImport
       parentRoute: typeof CustomersRoute
     }
+    '/jobs/$id/print': {
+      id: '/jobs/$id/print'
+      path: '/print'
+      fullPath: '/jobs/$id/print'
+      preLoaderRoute: typeof JobsIdPrintRouteImport
+      parentRoute: typeof JobsIdRoute
+    }
   }
 }
 
@@ -300,14 +319,25 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
   CustomersRouteChildren,
 )
 
+interface JobsIdRouteChildren {
+  JobsIdPrintRoute: typeof JobsIdPrintRoute
+}
+
+const JobsIdRouteChildren: JobsIdRouteChildren = {
+  JobsIdPrintRoute: JobsIdPrintRoute,
+}
+
+const JobsIdRouteWithChildren =
+  JobsIdRoute._addFileChildren(JobsIdRouteChildren)
+
 interface JobsRouteChildren {
-  JobsIdRoute: typeof JobsIdRoute
+  JobsIdRoute: typeof JobsIdRouteWithChildren
   JobsNewRoute: typeof JobsNewRoute
   JobsIndexRoute: typeof JobsIndexRoute
 }
 
 const JobsRouteChildren: JobsRouteChildren = {
-  JobsIdRoute: JobsIdRoute,
+  JobsIdRoute: JobsIdRouteWithChildren,
   JobsNewRoute: JobsNewRoute,
   JobsIndexRoute: JobsIndexRoute,
 }

@@ -33,9 +33,9 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar text-sidebar-foreground">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-sidebar-primary p-2.5">
+          {/* <div className="rounded-lg bg-sidebar-primary p-2.5">
             <Glasses className="h-7 w-7 text-sidebar-primary-foreground" />
-          </div>
+          </div> */}
           <div>
             <div className="font-bold tracking-wider text-lg">MARINA OPTICAL</div>
             <div className="text-xs text-sidebar-foreground/70">VISION CARE SYSTEM</div>
@@ -107,13 +107,13 @@ function LoginPage() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            {/* <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-muted-foreground">
                 <input type="checkbox" className="rounded border-input" defaultChecked />
                 จดจำการเข้าสู่ระบบ
               </label>
               <Link to="/login" className="text-primary hover:underline">ลืมรหัสผ่าน?</Link>
-            </div>
+            </div> */}
           </div>
 
           <button

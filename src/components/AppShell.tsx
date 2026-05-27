@@ -78,9 +78,9 @@ export function AppShell({
       <main className="flex-1 min-w-0">
         <header className="flex items-center justify-between px-6 py-3 bg-card border-b border-border">
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-md hover:bg-secondary">
+            {/* <button className="p-2 rounded-md hover:bg-secondary">
               <Menu className="h-5 w-5" />
-            </button>
+            </button> */}
             <div>
               <div className="text-base font-semibold text-foreground">{title}</div>
               {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
@@ -93,17 +93,17 @@ export function AppShell({
             >
               <Plus className="h-4 w-4" /> สร้างใบงานใหม่
             </Link>
-            <button className="relative p-2 rounded-md hover:bg-secondary">
+            {/* <button className="relative p-2 rounded-md hover:bg-secondary">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">3</span>
-            </button>
+            </button> */}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-primary font-semibold">A</div>
               <div className="text-right">
                 <div className="text-sm font-semibold">Admin</div>
                 <div className="text-xs text-muted-foreground">ผู้ดูแลระบบ</div>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              {/* <ChevronDown className="h-4 w-4 text-muted-foreground" /> */}
               <Link to="/login" title="ออกจากระบบ" className="p-2 rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive">
                 <LogOut className="h-4 w-4" />
               </Link>
