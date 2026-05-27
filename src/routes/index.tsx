@@ -1,339 +1,429 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Glasses, CheckCircle2, Circle, FileIcon, Plus, Save, FilePlus, Printer,
-  FileDown, Send, Trash2, Calendar,
+  Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight,
+  CheckCircle2, Clock, Wrench, ShieldCheck, Package, Truck,
+  Glasses, ArrowUpDown, FileDown, RefreshCw,
 } from "lucide-react";
-import { AppShell, SectionCard } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
+import { useState, useMemo } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ใบงาน #217 — MARINA OPTICAL" },
-      { name: "description", content: "ใบสั่งเลนส์ดิจิทัล / Vision Record" },
+      { title: "ใบงานทั้งหมด — MARINA OPTICAL" },
+      { name: "description", content: "รายการใบงานทั้งหมด" },
     ],
   }),
   component: Index,
 });
 
-const statusSteps = [
-  { label: "รับออเดอร์แล้ว", time: "12/05/2567 14:32", state: "done" },
-  { label: "รอเลนส์", time: "12/05/2567 15:10", state: "current" },
-  { label: "กำลังประกอบ", state: "pending" },
-  { label: "QC แล้ว", state: "pending" },
-  { label: "พร้อมรับ", state: "pending" },
-  { label: "ส่งมอบแล้ว", state: "pending" },
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type OrderStatus =
+  | "รับออเดอร์แล้ว"
+  | "รอเลนส์"
+  | "กำลังประกอบ"
+  | "QC แล้ว"
+  | "พร้อมรับ"
+  | "ส่งมอบแล้ว";
+
+interface Order {
+  id: number;
+  customer: string;
+  phone: string;
+  lensType: string;
+  brand: string;
+  total: number;
+  deposit: number;
+  remaining: number;
+  orderDate: string;
+  pickupDate: string;
+  status: OrderStatus;
+  staff: string;
+}
+
+// ─── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_ORDERS: Order[] = [
+  { id: 217, customer: "คุณวิเชียร เกิดสมบัติ",   phone: "082-447-8801", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 6500,  deposit: 3000, remaining: 3500, orderDate: "12/05/2567", pickupDate: "19/05/2567", status: "รอเลนส์",         staff: "คุณมารินา" },
+  { id: 216, customer: "คุณสมหญิง ประดิษฐ์ดี",    phone: "089-123-4567", lensType: "SINGLE VISION", brand: "HOYA",       total: 3200,  deposit: 1500, remaining: 1700, orderDate: "11/05/2567", pickupDate: "16/05/2567", status: "QC แล้ว",          staff: "คุณกิตติพงศ์" },
+  { id: 215, customer: "คุณประเสริฐ วงศ์ทอง",     phone: "091-234-5678", lensType: "PROGRESSIVE", brand: "ZEISS",       total: 9800,  deposit: 5000, remaining: 4800, orderDate: "10/05/2567", pickupDate: "17/05/2567", status: "กำลังประกอบ",     staff: "คุณมารินา" },
+  { id: 214, customer: "คุณนิภา สุขสวัสดิ์",      phone: "086-345-6789", lensType: "BIFOCAL",      brand: "HOYA",       total: 4500,  deposit: 2000, remaining: 2500, orderDate: "09/05/2567", pickupDate: "15/05/2567", status: "พร้อมรับ",         staff: "คุณมารินา" },
+  { id: 213, customer: "คุณอานนท์ รุ่งเรือง",     phone: "083-456-7890", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 11200, deposit: 6000, remaining: 5200, orderDate: "08/05/2567", pickupDate: "14/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
+  { id: 212, customer: "คุณสุภาพ เจริญผล",        phone: "087-567-8901", lensType: "SINGLE VISION", brand: "ZEISS",     total: 2800,  deposit: 1000, remaining: 1800, orderDate: "07/05/2567", pickupDate: "13/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
+  { id: 211, customer: "คุณชัยรัตน์ สิงห์ทอง",   phone: "092-678-9012", lensType: "OFFICE LENS",  brand: "HOYA",       total: 5600,  deposit: 2500, remaining: 3100, orderDate: "06/05/2567", pickupDate: "12/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
+  { id: 210, customer: "คุณวิไลวรรณ พรมมา",       phone: "084-789-0123", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 8400,  deposit: 4000, remaining: 4400, orderDate: "05/05/2567", pickupDate: "11/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
+  { id: 209, customer: "คุณธนา บุญส่ง",           phone: "095-890-1234", lensType: "BIFOCAL",      brand: "ZEISS",      total: 6100,  deposit: 3000, remaining: 3100, orderDate: "04/05/2567", pickupDate: "10/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
+  { id: 208, customer: "คุณมาลี อินทะวงศ์",       phone: "081-901-2345", lensType: "SINGLE VISION", brand: "HOYA",      total: 1900,  deposit: 1000, remaining:  900, orderDate: "03/05/2567", pickupDate: "09/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
+  { id: 207, customer: "คุณพิชัย สุขสันต์",       phone: "098-012-3456", lensType: "PROGRESSIVE", brand: "ZEISS",       total: 12500, deposit: 6000, remaining: 6500, orderDate: "02/05/2567", pickupDate: "08/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
+  { id: 206, customer: "คุณรัตนา ศรีวิชัย",       phone: "085-123-4560", lensType: "OFFICE LENS",  brand: "HOYA",       total: 3800,  deposit: 2000, remaining: 1800, orderDate: "01/05/2567", pickupDate: "07/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
+  { id: 218, customer: "คุณสมศักดิ์ บัวทอง",      phone: "088-234-5671", lensType: "PROGRESSIVE", brand: "HOYA",        total: 7200,  deposit: 3500, remaining: 3700, orderDate: "13/05/2567", pickupDate: "20/05/2567", status: "รับออเดอร์แล้ว",   staff: "คุณมารินา" },
+  { id: 219, customer: "คุณกนกวรรณ ดีมาก",        phone: "090-345-6782", lensType: "SINGLE VISION", brand: "RODENSTOCK", total: 4100, deposit: 2000, remaining: 2100, orderDate: "13/05/2567", pickupDate: "18/05/2567", status: "รับออเดอร์แล้ว",   staff: "คุณกิตติพงศ์" },
 ];
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-      <label className="text-sm text-muted-foreground">{label}</label>
-      <div>{children}</div>
-    </div>
-  );
-}
+// ─── Status config ────────────────────────────────────────────────────────────
 
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 ${props.className ?? ""}`}
-    />
-  );
-}
+const STATUS_CONFIG: Record<OrderStatus, {
+  icon: React.ReactNode;
+  bg: string;
+  text: string;
+  border: string;
+}> = {
+  "รับออเดอร์แล้ว": {
+    icon: <Clock className="h-3.5 w-3.5" />,
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+  },
+  "รอเลนส์": {
+    icon: <RefreshCw className="h-3.5 w-3.5" />,
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    border: "border-amber-200",
+  },
+  "กำลังประกอบ": {
+    icon: <Wrench className="h-3.5 w-3.5" />,
+    bg: "bg-orange-50",
+    text: "text-orange-700",
+    border: "border-orange-200",
+  },
+  "QC แล้ว": {
+    icon: <ShieldCheck className="h-3.5 w-3.5" />,
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
+  },
+  "พร้อมรับ": {
+    icon: <Package className="h-3.5 w-3.5" />,
+    bg: "bg-teal-50",
+    text: "text-teal-700",
+    border: "border-teal-200",
+  },
+  "ส่งมอบแล้ว": {
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    bg: "bg-green-50",
+    text: "text-green-700",
+    border: "border-green-200",
+  },
+};
 
-function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+const ALL_STATUSES: OrderStatus[] = [
+  "รับออเดอร์แล้ว",
+  "รอเลนส์",
+  "กำลังประกอบ",
+  "QC แล้ว",
+  "พร้อมรับ",
+  "ส่งมอบแล้ว",
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const cfg = STATUS_CONFIG[status];
   return (
-    <select
-      {...props}
-      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap
+        ${cfg.bg} ${cfg.text} ${cfg.border}`}
     >
-      {children}
-    </select>
+      {cfg.icon}
+      {status}
+    </span>
   );
 }
 
-function RxTable({ rows, headers }: { headers: string[]; rows: (string | number)[][] }) {
+function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-secondary-foreground">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t border-border">
-              {row.map((c, j) => (
-                <td key={j} className={`px-3 py-2 ${j === 0 ? "font-semibold text-primary" : "text-foreground"}`}>{c}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="rounded-xl border border-border bg-secondary/50 px-5 py-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-primary">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
+
+const PAGE_SIZE = 10;
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 function Index() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "ทั้งหมด">("ทั้งหมด");
+  const [staffFilter, setStaffFilter] = useState("ทั้งหมด");
+  const [sortKey, setSortKey] = useState<keyof Order>("id");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const staffList = useMemo(
+    () => ["ทั้งหมด", ...Array.from(new Set(MOCK_ORDERS.map((o) => o.staff)))],
+    [],
+  );
+
+  const filtered = useMemo(() => {
+    let rows = [...MOCK_ORDERS];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(
+        (o) =>
+          o.customer.toLowerCase().includes(q) ||
+          String(o.id).includes(q) ||
+          o.phone.includes(q),
+      );
+    }
+    if (statusFilter !== "ทั้งหมด") rows = rows.filter((o) => o.status === statusFilter);
+    if (staffFilter !== "ทั้งหมด") rows = rows.filter((o) => o.staff === staffFilter);
+    rows.sort((a, b) => {
+      const av = a[sortKey] as string | number;
+      const bv = b[sortKey] as string | number;
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortAsc ? cmp : -cmp;
+    });
+    return rows;
+  }, [search, statusFilter, staffFilter, sortKey, sortAsc]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function toggleSort(key: keyof Order) {
+    if (sortKey === key) setSortAsc((p) => !p);
+    else { setSortKey(key); setSortAsc(false); }
+    setPage(1);
+  }
+
+  function handleFilterChange() {
+    setPage(1);
+  }
+
+  // summary stats
+  const inProgress = MOCK_ORDERS.filter(
+    (o) => !["ส่งมอบแล้ว"].includes(o.status),
+  ).length;
+  const readyToPickup = MOCK_ORDERS.filter((o) => o.status === "พร้อมรับ").length;
+  const totalRevenue = MOCK_ORDERS.reduce((s, o) => s + o.total, 0);
+
   return (
     <AppShell
       title={
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">ใบงานเลขที่</span>
-          <span className="text-3xl font-bold text-primary leading-none">217</span>
-          <span className="text-sm text-muted-foreground ml-3">วันที่ 12/05/2567</span>
+          <Glasses className="h-6 w-6 text-primary" />
+          <span className="text-2xl font-bold text-primary leading-none">MARINA OPTICAL</span>
         </div>
       }
-      subtitle="ใบสั่งเลนส์ดิจิทัล — Customer Vision Record"
+      subtitle="รายการใบงานทั้งหมด — All Vision Records"
     >
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 p-6">
-          <div className="space-y-6 min-w-0">
-            {/* Customer info */}
-            <SectionCard title="ข้อมูลลูกค้า">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                <Field label="รหัสลูกค้า"><Input defaultValue="CUS-000152" /></Field>
-                <Field label="อายุ">
-                  <div className="grid grid-cols-[1fr_40px_60px_1fr] items-center gap-2">
-                    <Input defaultValue="53" />
-                    <span className="text-sm text-muted-foreground text-center">ปี</span>
-                    <span className="text-sm text-muted-foreground">เพศ</span>
-                    <Select defaultValue="ชาย"><option>ชาย</option><option>หญิง</option></Select>
-                  </div>
-                </Field>
-                <Field label="ชื่อ-นามสกุล"><Input defaultValue="คุณวิเชียร เกิดสมบัติ" /></Field>
-                <Field label="อาชีพ"><Input defaultValue="ธุรกิจส่วนตัว" /></Field>
-                <Field label="เบอร์โทรศัพท์"><Input defaultValue="082-447-8801" /></Field>
-                <Field label="ผู้ตรวจสายตา"><Input defaultValue="คุณกิตติพงศ์" /></Field>
-                <Field label="ที่อยู่"><Input defaultValue="52/15 ม.3 ต.เสม็ด อ.เมือง จ.ชลบุรี 20000" /></Field>
-                <Field label="ผู้รับงาน"><Input defaultValue="คุณมารินา" /></Field>
-                <Field label="หมายเหตุ"><Input defaultValue="แพ้สารเคลือบบางชนิด / ต้องการเลนส์บาง" /></Field>
-              </div>
-            </SectionCard>
+      <div className="p-6 space-y-6">
 
-            {/* Prescription */}
-            <SectionCard title="ค่าสายตา">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-semibold mb-3 text-foreground">ค่าสายตาปัจจุบัน</h3>
-                  <RxTable
-                    headers={["ข้าง", "SPH", "CYL", "AX", "VA", "ADD"]}
-                    rows={[
-                      ["R (OD)", "+1.75", "-1.50", "150", "AX 175", "+2.50"],
-                      ["L (OS)", "+1.75", "-1.75", "130", "AX 185", "+2.50"],
-                    ]}
-                  />
-                  <div className="mt-4 grid grid-cols-[110px_1fr] items-center gap-3">
-                    <label className="text-sm text-muted-foreground">ประเภทเลนส์</label>
-                    <Select defaultValue="prog">
-                      <option value="prog">PROGRESSIVE (Progressive Addition Lens)</option>
-                      <option>SINGLE VISION</option>
-                      <option>BIFOCAL</option>
-                      <option>OFFICE LENS</option>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold mb-3 text-foreground">PD / การวัด</h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    {[
-                      ["PD R", "30", "SHR", "27"],
-                      ["PD L", "30", "SHL", "27"],
-                      ["PD รวม", "60", "FH", "15"],
-                    ].flatMap((row, i) => [
-                      <div key={`a${i}`} className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground w-14">{row[0]}</label>
-                        <Input defaultValue={row[1]} />
-                        <span className="text-xs text-muted-foreground">มม.</span>
-                      </div>,
-                      <div key={`b${i}`} className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground w-14">{row[2]}</label>
-                        <Input defaultValue={row[3]} />
-                        <span className="text-xs text-muted-foreground">มม.</span>
-                      </div>,
-                    ])}
-                    <div className="col-span-2 flex items-center gap-2">
-                      <label className="text-sm text-muted-foreground w-40">ระยะอ่าน (Segment Height)</label>
-                      <Input defaultValue="27" className="max-w-[120px]" />
-                      <span className="text-xs text-muted-foreground">มม.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6">
-                <h3 className="text-sm font-semibold mb-3 text-foreground">ค่าสายตาเดิม (อ้างอิง)</h3>
-                <RxTable
-                  headers={["ข้าง", "SPH", "CYL", "AX", "VA", "ADD", "วันที่วัด"]}
-                  rows={[
-                    ["R (OD)", "+1.50", "-1.50", "150", "AX 175", "+2.25", "15/08/2566"],
-                    ["L (OS)", "+1.50", "-1.75", "130", "AX 180", "+2.25", "15/08/2566"],
-                  ]}
-                />
-              </div>
-            </SectionCard>
+        {/* ── Summary stats ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatCard label="ใบงานทั้งหมด"     value={MOCK_ORDERS.length} sub="รายการ" />
+          <StatCard label="กำลังดำเนินการ"   value={inProgress}        sub="รายการ" />
+          <StatCard label="พร้อมรับแล้ว"      value={readyToPickup}     sub="รอลูกค้า" />
+          <StatCard
+            label="ยอดรวมเดือนนี้"
+            value={`${totalRevenue.toLocaleString()} ฿`}
+            sub="พ.ค. 2567"
+          />
+        </div>
 
-            {/* Lens & frame + Pricing */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SectionCard title="เลนส์และกรอบแว่น">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3">เลนส์</h4>
-                      <div className="space-y-3">
-                        <Field label="ยี่ห้อเลนส์"><Select><option>RODENSTOCK</option><option>HOYA</option><option>ZEISS</option></Select></Field>
-                        <Field label="รุ่นเลนส์"><Select><option>PROGRESSIVE Individual 2</option></Select></Field>
-                        <Field label="ดัชนีหักเห (Index)"><Select defaultValue="1.60"><option>1.56</option><option>1.60</option><option>1.67</option><option>1.74</option></Select></Field>
-                        <Field label="สารเคลือบเลนส์ (Coating)"><Select><option>Multicoat + Blue Light</option><option>Photochromic</option><option>Transition</option></Select></Field>
-                        <Field label="สีเลนส์"><Select><option>Clear</option><option>Brown</option><option>Grey</option></Select></Field>
-                        <Field label="หมายเหตุเลนส์"><Input defaultValue="ต้องการเลนส์บาง คุณภาพสูง" /></Field>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3">กรอบแว่น</h4>
-                      <div className="space-y-3">
-                        <Field label="รุ่น"><Input defaultValue="RB 6501D" /></Field>
-                        <Field label="สี"><Input defaultValue="Black" /></Field>
-                        <Field label="ขนาด"><Input defaultValue="54-17-145" /></Field>
-                        <Field label="วัสดุ"><Input defaultValue="Titanium" /></Field>
-                      </div>
-                      <div className="mt-4 rounded-lg border border-border bg-secondary/40 h-32 flex items-center justify-center text-muted-foreground">
-                        <Glasses className="h-16 w-16 opacity-60" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </SectionCard>
-
-              <SectionCard title="ราคาและการชำระเงิน">
-                <div className="space-y-3">
-                  {[
-                    ["ราคากรอบแว่น", "2,500.00"],
-                    ["ราคาเลนส์", "4,500.00"],
-                    ["สารเคลือบ / อื่นๆ", "0.00"],
-                  ].map(([l, v]) => (
-                    <div key={l} className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                      <span className="text-sm text-muted-foreground">{l}</span>
-                      <Input defaultValue={v} className="text-right" />
-                      <span className="text-xs text-muted-foreground">บาท</span>
-                    </div>
-                  ))}
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3 pt-2 border-t border-border">
-                    <span className="text-sm font-semibold">รวมราคาสินค้า</span>
-                    <span className="text-right font-semibold">7,000.00</span>
-                    <span className="text-xs text-muted-foreground">บาท</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                    <span className="text-sm text-destructive">ส่วนลด</span>
-                    <Input defaultValue="500.00" className="text-right text-destructive" />
-                    <span className="text-xs text-muted-foreground">บาท</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3 py-2 px-3 -mx-3 rounded-lg bg-secondary">
-                    <span className="text-base font-bold">ยอดรวมสุทธิ</span>
-                    <span className="text-right text-xl font-bold text-primary">6,500.00</span>
-                    <span className="text-xs text-muted-foreground">บาท</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                    <span className="text-sm text-muted-foreground">มัดจำ</span>
-                    <Input defaultValue="3,000.00" className="text-right" />
-                    <span className="text-xs text-muted-foreground">บาท</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                    <span className="text-sm text-muted-foreground">คงเหลือ</span>
-                    <Input defaultValue="3,500.00" className="text-right" />
-                    <span className="text-xs text-muted-foreground">บาท</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                    <span className="text-sm text-muted-foreground">วันที่นัดรับ</span>
-                    <Input defaultValue="19/05/2567" className="text-right" />
-                    <span className="text-xs text-muted-foreground"><Calendar className="h-4 w-4" /></span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_180px_40px] items-center gap-3">
-                    <span className="text-sm text-muted-foreground">ช่องทางชำระ</span>
-                    <Select><option>เงินสด</option><option>โอน</option><option>บัตรเครดิต</option></Select>
-                    <span />
-                  </div>
-                </div>
-              </SectionCard>
+        {/* ── Filters ── */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="ค้นหา ชื่อลูกค้า, เบอร์โทร, เลขใบงาน…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); handleFilterChange(); }}
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3">
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-5 py-3 font-medium shadow hover:opacity-90">
-                <Save className="h-5 w-5" /> บันทึกใบงาน
+            {/* Staff filter */}
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={staffFilter}
+                onChange={(e) => { setStaffFilter(e.target.value); handleFilterChange(); }}
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+              >
+                {staffList.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="ml-auto flex gap-3">
+              <button className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary">
+                <FileDown className="h-4 w-4" /> ส่งออก Excel
               </button>
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg border border-primary text-primary px-5 py-3 font-medium hover:bg-secondary">
-                <FilePlus className="h-5 w-5" /> สร้างใบงานใหม่
-              </button>
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-3 font-medium hover:bg-secondary">
-                <Printer className="h-5 w-5" /> พิมพ์ใบงาน
-              </button>
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-3 font-medium hover:bg-secondary">
-                <FileDown className="h-5 w-5" /> บันทึกเป็น PDF
-              </button>
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-3 font-medium hover:bg-secondary">
-                <Send className="h-5 w-5" /> ส่งให้ลูกค้า (Line / Email)
-              </button>
-              <button className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-lg border border-destructive text-destructive px-5 py-3 font-medium hover:bg-destructive/10">
-                <Trash2 className="h-5 w-5" /> ยกเลิกใบงาน
-              </button>
+<Link
+  to="/jobs/new"
+  className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow hover:opacity-90"
+>
+  <Plus className="h-4 w-4" /> สร้างใบงานใหม่
+</Link>
             </div>
           </div>
 
-          {/* Right rail */}
-          <aside className="space-y-6">
-            <SectionCard title="สถานะงาน">
-              <ol className="relative space-y-5">
-                {statusSteps.map((s, i) => {
-                  const isDone = s.state === "done";
-                  const isCurrent = s.state === "current";
-                  return (
-                    <li key={s.label} className="relative pl-9">
-                      {i < statusSteps.length - 1 && (
-                        <span className="absolute left-3 top-6 bottom-[-1.25rem] w-px bg-border" />
-                      )}
-                      <span className={`absolute left-0 top-0 h-6 w-6 rounded-full flex items-center justify-center ${
-                        isDone ? "bg-primary text-primary-foreground" :
-                        isCurrent ? "bg-primary/15 text-primary ring-2 ring-primary" :
-                        "bg-secondary text-muted-foreground"
-                      }`}>
-                        {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-3 w-3" />}
-                      </span>
-                      <div className={`text-sm font-medium ${isDone || isCurrent ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</div>
-                      {s.time && <div className="text-xs text-muted-foreground mt-0.5">{s.time}</div>}
-                    </li>
-                  );
-                })}
-              </ol>
-            </SectionCard>
-
-            <SectionCard title="เอกสาร / ไฟล์แนบ">
-              <div className="space-y-2">
-                {["สแกนใบสั่งซื้อ.pdf", "รูปกรอบแว่น.jpg", "ใบเสร็จมัดจำ.pdf"].map((f) => (
-                  <div key={f} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
-                    <FileIcon className="h-4 w-4 text-primary" />
-                    <span className="truncate">{f}</span>
-                  </div>
-                ))}
-                <button className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-primary text-primary px-3 py-2.5 text-sm font-medium hover:bg-secondary">
-                  <Plus className="h-4 w-4" /> เพิ่มไฟล์
+          {/* Status filter pills */}
+          <div className="flex flex-wrap gap-2">
+            {(["ทั้งหมด", ...ALL_STATUSES] as const).map((s) => {
+              const isActive = statusFilter === s;
+              const count =
+                s === "ทั้งหมด"
+                  ? MOCK_ORDERS.length
+                  : MOCK_ORDERS.filter((o) => o.status === s).length;
+              return (
+                <button
+                  key={s}
+                  onClick={() => { setStatusFilter(s as typeof statusFilter); handleFilterChange(); }}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors
+                    ${isActive
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                    }`}
+                >
+                  {s}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold
+                    ${isActive ? "bg-white/20 text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    {count}
+                  </span>
                 </button>
-              </div>
-            </SectionCard>
+              );
+            })}
+          </div>
+        </div>
 
-            <SectionCard title="หมายเหตุ / ปัญหา">
-              <textarea
-                defaultValue={"- ลูกค้าต้องการเลนส์บาง\n- ใส่คอมพิวเตอร์เป็นประจำ"}
-                rows={5}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/40"
-              />
-              <button className="mt-3 w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-primary text-primary px-3 py-2.5 text-sm font-medium hover:bg-secondary">
-                <Plus className="h-4 w-4" /> เพิ่มหมายเหตุ
+        {/* ── Table ── */}
+        <div className="rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/70 text-secondary-foreground">
+                <tr>
+                  {[
+                    { label: "เลขใบงาน", key: "id"          as keyof Order, w: "w-24"  },
+                    { label: "วันที่",    key: "orderDate"   as keyof Order, w: "w-28"  },
+                    { label: "ลูกค้า",   key: "customer"    as keyof Order, w: ""      },
+                    { label: "ประเภทเลนส์", key: "lensType" as keyof Order, w: "w-40"  },
+                    { label: "สถานะ",    key: "status"      as keyof Order, w: "w-40"  },
+                    { label: "ยอดรวม",   key: "total"       as keyof Order, w: "w-28"  },
+                    { label: "คงเหลือ",  key: "remaining"   as keyof Order, w: "w-28"  },
+                    { label: "นัดรับ",   key: "pickupDate"  as keyof Order, w: "w-28"  },
+                    { label: "ผู้รับงาน",key: "staff"       as keyof Order, w: "w-28"  },
+                  ].map(({ label, key, w }) => (
+                    <th
+                      key={key}
+                      onClick={() => toggleSort(key)}
+                      className={`px-4 py-3 text-left font-medium cursor-pointer select-none hover:bg-secondary group ${w}`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        <ArrowUpDown className={`h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity ${sortKey === key ? "opacity-100 text-primary" : ""}`} />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-left font-medium w-20">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-16 text-center text-muted-foreground">
+                      <Search className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                      ไม่พบรายการที่ตรงกับการค้นหา
+                    </td>
+                  </tr>
+                ) : (
+                  paginated.map((order, i) => (
+                    <tr
+                      key={order.id}
+                      className={`border-t border-border hover:bg-secondary/50 transition-colors
+                        ${i % 2 === 0 ? "" : "bg-secondary/20"}`}
+                    >
+                      <td className="px-4 py-3 font-bold text-primary">
+                    <Link to="/jobs/$id" params={{ id: String(order.id) }} className="hover:underline">
+  #{order.id}
+</Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.orderDate}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-foreground">{order.customer}</div>
+                        <div className="text-xs text-muted-foreground">{order.phone}</div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.lensType}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={order.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold">
+                        {order.total.toLocaleString()}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-semibold ${order.remaining > 0 ? "text-destructive" : "text-green-600"}`}>
+                        {order.remaining.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.pickupDate}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.staff}</td>
+                      <td className="px-4 py-3">
+           <Link
+  to="/jobs/$id"
+  params={{ id: String(order.id) }}
+  className="rounded-md border border-primary text-primary px-3 py-1 text-xs font-medium hover:bg-primary/10 transition-colors"
+>
+  เปิดใบงาน
+</Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Pagination ── */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-secondary/40 px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              แสดง {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} จาก {filtered.length} รายการ
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            </SectionCard>
-          </aside>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                .reduce<(number | "…")[]>((acc, n, i, arr) => {
+                  if (i > 0 && n - (arr[i - 1] as number) > 1) acc.push("…");
+                  acc.push(n);
+                  return acc;
+                }, [])
+                .map((n, i) =>
+                  n === "…" ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">…</span>
+                  ) : (
+                    <button
+                      key={n}
+                      onClick={() => setPage(n as number)}
+                      className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors
+                        ${page === n
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border text-foreground hover:bg-secondary"
+                        }`}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </AppShell>
   );

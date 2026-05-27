@@ -8,11 +8,11 @@ import {
 const navItems = [
   { icon: Home, label: "หน้าหลัก", to: "/" as const },
   { icon: Users, label: "ลูกค้า", to: "/customers" as const },
-  { icon: FileText, label: "ใบงาน / ใบสั่งเลนส์", to: "/" as const, hasChild: true },
+  // { icon: FileText, label: "ใบงาน / ใบสั่งเลนส์", to: "/" as const, hasChild: true },
   { icon: History, label: "ประวัติลูกค้า", to: "/history" as const, hasChild: true },
-  { icon: Clock, label: "งานที่กำลังดำเนินการ", to: "/jobs" as const, hasChild: true },
+
   { icon: BarChart3, label: "รายงาน", to: "/reports" as const, hasChild: true },
-  { icon: Package, label: "สินค้า / เลนส์", to: "/products" as const, hasChild: true },
+  // { icon: Package, label: "สินค้า / เลนส์", to: "/products" as const, hasChild: true },
   { icon: Settings, label: "ตั้งค่า", to: "/settings" as const, hasChild: true },
   { icon: UserCog, label: "ผู้ใช้งาน", to: "/users" as const },
 ];
@@ -32,9 +32,7 @@ export function AppShell({
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
-          <div className="rounded-lg bg-sidebar-primary p-2">
-            <Glasses className="h-6 w-6 text-sidebar-primary-foreground" />
-          </div>
+    
           <div>
             <div className="font-bold tracking-wide">MARINA OPTICAL</div>
             <div className="text-xs text-sidebar-foreground/70">VISION CARE SYSTEM</div>
@@ -66,9 +64,9 @@ export function AppShell({
           })}
         </nav>
         <div className="px-3 pb-4">
-          <button className="w-full flex items-center justify-center gap-2 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3 text-sm hover:bg-sidebar-accent">
+          {/* <button className="w-full flex items-center justify-center gap-2 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3 text-sm hover:bg-sidebar-accent">
             <ScanBarcode className="h-5 w-5" /> สแกนบาร์โค้ด
-          </button>
+          </button> */}
           <div className="mt-4 text-xs text-sidebar-foreground/60 text-center">
             <div className="font-semibold text-sidebar-foreground/80">MARINA OPTICAL</div>
             <div>© 2024 All Rights Reserved</div>

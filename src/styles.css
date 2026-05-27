@@ -1,4 +1,9 @@
 @import "tailwindcss" source(none);
+@import "@fontsource/kanit/300.css";
+@import "@fontsource/kanit/400.css";
+@import "@fontsource/kanit/500.css";
+@import "@fontsource/kanit/600.css";
+@import "@fontsource/kanit/700.css";
 @source "../src";
 @import "tw-animate-css";
 
@@ -138,6 +143,7 @@
   }
 
   body {
+    font-family: "Kanit", sans-serif;
     background-color: var(--color-background);
     color: var(--color-foreground);
   }

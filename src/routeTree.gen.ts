@@ -12,13 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as ProductsRouteImport } from './routes/products'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JobsIndexRouteImport } from './routes/jobs.index'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as JobsNewRouteImport } from './routes/jobs.new'
+import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 
 const UsersRoute = UsersRouteImport.update({
@@ -34,11 +36,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsRoute = ProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -66,9 +63,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JobsIndexRoute = JobsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JobsRoute,
+} as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CustomersRoute,
+} as any)
 const JobsNewRoute = JobsNewRouteImport.update({
   id: '/new',
   path: '/new',
+  getParentRoute: () => JobsRoute,
+} as any)
+const JobsIdRoute = JobsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
   getParentRoute: () => JobsRoute,
 } as any)
 const CustomersNewRoute = CustomersNewRouteImport.update({
@@ -83,25 +95,27 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
-  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/jobs/': typeof JobsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRouteWithChildren
   '/history': typeof HistoryRoute
-  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
-  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/customers': typeof CustomersIndexRoute
+  '/jobs': typeof JobsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,12 +124,14 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
-  '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/jobs/': typeof JobsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,25 +141,27 @@ export interface FileRouteTypes {
     | '/history'
     | '/jobs'
     | '/login'
-    | '/products'
     | '/reports'
     | '/settings'
     | '/users'
     | '/customers/new'
+    | '/jobs/$id'
     | '/jobs/new'
+    | '/customers/'
+    | '/jobs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/customers'
     | '/history'
-    | '/jobs'
     | '/login'
-    | '/products'
     | '/reports'
     | '/settings'
     | '/users'
     | '/customers/new'
+    | '/jobs/$id'
     | '/jobs/new'
+    | '/customers'
+    | '/jobs'
   id:
     | '__root__'
     | '/'
@@ -151,12 +169,14 @@ export interface FileRouteTypes {
     | '/history'
     | '/jobs'
     | '/login'
-    | '/products'
     | '/reports'
     | '/settings'
     | '/users'
     | '/customers/new'
+    | '/jobs/$id'
     | '/jobs/new'
+    | '/customers/'
+    | '/jobs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,7 +185,6 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   JobsRoute: typeof JobsRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
@@ -192,13 +211,6 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products': {
-      id: '/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -236,11 +248,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jobs/': {
+      id: '/jobs/'
+      path: '/'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof JobsIndexRouteImport
+      parentRoute: typeof JobsRoute
+    }
+    '/customers/': {
+      id: '/customers/'
+      path: '/'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof CustomersRoute
+    }
     '/jobs/new': {
       id: '/jobs/new'
       path: '/new'
       fullPath: '/jobs/new'
       preLoaderRoute: typeof JobsNewRouteImport
+      parentRoute: typeof JobsRoute
+    }
+    '/jobs/$id': {
+      id: '/jobs/$id'
+      path: '/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof JobsIdRouteImport
       parentRoute: typeof JobsRoute
     }
     '/customers/new': {
@@ -255,10 +288,12 @@ declare module '@tanstack/react-router' {
 
 interface CustomersRouteChildren {
   CustomersNewRoute: typeof CustomersNewRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
 }
 
 const CustomersRouteChildren: CustomersRouteChildren = {
   CustomersNewRoute: CustomersNewRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
 }
 
 const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
@@ -266,11 +301,15 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
 )
 
 interface JobsRouteChildren {
+  JobsIdRoute: typeof JobsIdRoute
   JobsNewRoute: typeof JobsNewRoute
+  JobsIndexRoute: typeof JobsIndexRoute
 }
 
 const JobsRouteChildren: JobsRouteChildren = {
+  JobsIdRoute: JobsIdRoute,
   JobsNewRoute: JobsNewRoute,
+  JobsIndexRoute: JobsIndexRoute,
 }
 
 const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
@@ -281,7 +320,6 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   JobsRoute: JobsRouteWithChildren,
   LoginRoute: LoginRoute,
-  ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
