@@ -311,42 +311,50 @@ function JobDetailPage() {
   }
 
   // ── Export PDF ─────────────────────────────────────────────────────────────
-  async function handlePdf() {
-    if (!printRef.current) return;
-    setPdfLoading(true);
-    try {
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: 1200,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgH  = (canvas.height * pageW) / canvas.width;
+async function handlePdf() {
+  if (!printRef.current) return;
+  setPdfLoading(true);
+  try {
+    // scroll to top ก่อน capture ไม่งั้น element อาจ offset ผิด
+    window.scrollTo(0, 0);
+    await new Promise((r) => setTimeout(r, 100)); // รอ layout settle
 
-      let y = 0;
-      while (y < imgH) {
-        if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -y, pageW, imgH);
-        y += pageH;
-      }
+    const canvas = await html2canvas(printRef.current, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,          // ✅ เพิ่ม — allow cross-origin elements
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: printRef.current.scrollWidth,  // ✅ ใช้ width จริงของ element
+      scrollY: -window.scrollY,  // ✅ compensate scroll offset
+    });
 
-      pdf.save(`ใบงาน-${jobId}-${customer.name.replace(/\s/g, "_")}.pdf`);
-    } finally {
-      setPdfLoading(false);
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgH  = (canvas.height * pageW) / canvas.width;
+
+    let y = 0;
+    while (y < imgH) {
+      if (y > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, -y, pageW, imgH);
+      y += pageH;
     }
+
+    pdf.save(`ใบงาน-${jobId}-${customer.name.replace(/\s/g, "_")}.pdf`);
+  } finally {
+    setPdfLoading(false);
   }
+}
 
   return (
     <>
       <style>{`
         @media print {
-          body > *:not(#print-root) { display: none !important; }
-          #print-root { display: block !important; position: static !important; }
+          body * { visibility: hidden; }
+#print-root, #print-root * { visibility: visible; }
+#print-root { position: absolute; inset: 0; }
           .no-print { display: none !important; }
           @page { margin: 12mm; size: A4; }
         }
@@ -355,13 +363,8 @@ function JobDetailPage() {
       <AppShell
         title={
           <div className="flex items-center gap-3 no-print">
-            <button
-              onClick={() => navigate({ to: "/jobs" })}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" /> รายการใบงาน
-            </button>
-            <span className="text-muted-foreground">/</span>
+    
+            {/* <span className="text-muted-foreground">/</span> */}
             <span className="text-sm font-semibold text-foreground">{jobId}</span>
             <StatusBadge index={status} />
           </div>

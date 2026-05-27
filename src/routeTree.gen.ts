@@ -9,26 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UsersRouteImport } from './routes/users'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JobsRouteImport } from './routes/jobs'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UsersIndexRouteImport } from './routes/users.index'
 import { Route as JobsIndexRouteImport } from './routes/jobs.index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as JobsNewRouteImport } from './routes/jobs.new'
 import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as JobsIdPrintRouteImport } from './routes/jobs.$id.print'
 
-const UsersRoute = UsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -49,19 +43,14 @@ const JobsRoute = JobsRouteImport.update({
   path: '/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersRoute = CustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersIndexRoute = UsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobsIndexRoute = JobsIndexRouteImport.update({
@@ -70,9 +59,14 @@ const JobsIndexRoute = JobsIndexRouteImport.update({
   getParentRoute: () => JobsRoute,
 } as any)
 const CustomersIndexRoute = CustomersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CustomersRoute,
+  id: '/customers/',
+  path: '/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersNewRoute = UsersNewRouteImport.update({
+  id: '/users/new',
+  path: '/users/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JobsNewRoute = JobsNewRouteImport.update({
   id: '/new',
@@ -85,9 +79,9 @@ const JobsIdRoute = JobsIdRouteImport.update({
   getParentRoute: () => JobsRoute,
 } as any)
 const CustomersNewRoute = CustomersNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => CustomersRoute,
+  id: '/customers/new',
+  path: '/customers/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JobsIdPrintRoute = JobsIdPrintRouteImport.update({
   id: '/print',
@@ -97,120 +91,110 @@ const JobsIdPrintRoute = JobsIdPrintRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRouteWithChildren
-  '/history': typeof HistoryRoute
   '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
   '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
+  '/users/new': typeof UsersNewRoute
   '/customers/': typeof CustomersIndexRoute
   '/jobs/': typeof JobsIndexRoute
+  '/users/': typeof UsersIndexRoute
   '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
   '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
+  '/users/new': typeof UsersNewRoute
   '/customers': typeof CustomersIndexRoute
   '/jobs': typeof JobsIndexRoute
+  '/users': typeof UsersIndexRoute
   '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/customers': typeof CustomersRouteWithChildren
-  '/history': typeof HistoryRoute
   '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/users': typeof UsersRoute
   '/customers/new': typeof CustomersNewRoute
   '/jobs/$id': typeof JobsIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
+  '/users/new': typeof UsersNewRoute
   '/customers/': typeof CustomersIndexRoute
   '/jobs/': typeof JobsIndexRoute
+  '/users/': typeof UsersIndexRoute
   '/jobs/$id/print': typeof JobsIdPrintRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/customers'
-    | '/history'
     | '/jobs'
     | '/login'
     | '/reports'
     | '/settings'
-    | '/users'
     | '/customers/new'
     | '/jobs/$id'
     | '/jobs/new'
+    | '/users/new'
     | '/customers/'
     | '/jobs/'
+    | '/users/'
     | '/jobs/$id/print'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/history'
     | '/login'
     | '/reports'
     | '/settings'
-    | '/users'
     | '/customers/new'
     | '/jobs/$id'
     | '/jobs/new'
+    | '/users/new'
     | '/customers'
     | '/jobs'
+    | '/users'
     | '/jobs/$id/print'
   id:
     | '__root__'
     | '/'
-    | '/customers'
-    | '/history'
     | '/jobs'
     | '/login'
     | '/reports'
     | '/settings'
-    | '/users'
     | '/customers/new'
     | '/jobs/$id'
     | '/jobs/new'
+    | '/users/new'
     | '/customers/'
     | '/jobs/'
+    | '/users/'
     | '/jobs/$id/print'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CustomersRoute: typeof CustomersRouteWithChildren
-  HistoryRoute: typeof HistoryRoute
   JobsRoute: typeof JobsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
-  UsersRoute: typeof UsersRoute
+  CustomersNewRoute: typeof CustomersNewRoute
+  UsersNewRoute: typeof UsersNewRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
+  UsersIndexRoute: typeof UsersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/users': {
-      id: '/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -239,25 +223,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JobsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customers': {
-      id: '/customers'
-      path: '/customers'
-      fullPath: '/customers'
-      preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users/': {
+      id: '/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof UsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jobs/': {
@@ -269,10 +246,17 @@ declare module '@tanstack/react-router' {
     }
     '/customers/': {
       id: '/customers/'
-      path: '/'
+      path: '/customers'
       fullPath: '/customers/'
       preLoaderRoute: typeof CustomersIndexRouteImport
-      parentRoute: typeof CustomersRoute
+      parentRoute: typeof rootRouteImport
+    }
+    '/users/new': {
+      id: '/users/new'
+      path: '/users/new'
+      fullPath: '/users/new'
+      preLoaderRoute: typeof UsersNewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/jobs/new': {
       id: '/jobs/new'
@@ -290,10 +274,10 @@ declare module '@tanstack/react-router' {
     }
     '/customers/new': {
       id: '/customers/new'
-      path: '/new'
+      path: '/customers/new'
       fullPath: '/customers/new'
       preLoaderRoute: typeof CustomersNewRouteImport
-      parentRoute: typeof CustomersRoute
+      parentRoute: typeof rootRouteImport
     }
     '/jobs/$id/print': {
       id: '/jobs/$id/print'
@@ -304,20 +288,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface CustomersRouteChildren {
-  CustomersNewRoute: typeof CustomersNewRoute
-  CustomersIndexRoute: typeof CustomersIndexRoute
-}
-
-const CustomersRouteChildren: CustomersRouteChildren = {
-  CustomersNewRoute: CustomersNewRoute,
-  CustomersIndexRoute: CustomersIndexRoute,
-}
-
-const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
-  CustomersRouteChildren,
-)
 
 interface JobsIdRouteChildren {
   JobsIdPrintRoute: typeof JobsIdPrintRoute
@@ -346,13 +316,14 @@ const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CustomersRoute: CustomersRouteWithChildren,
-  HistoryRoute: HistoryRoute,
   JobsRoute: JobsRouteWithChildren,
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
-  UsersRoute: UsersRoute,
+  CustomersNewRoute: CustomersNewRoute,
+  UsersNewRoute: UsersNewRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
+  UsersIndexRoute: UsersIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

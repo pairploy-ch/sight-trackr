@@ -43,7 +43,7 @@ function LoginPage() {
         </div>
         <div className="space-y-4 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
-            ระบบจัดการลูกค้า<br />และใบสั่งเลนส์ดิจิทัล
+            ระบบจัดการลูกค้า<br />MARINA OPTICAL
           </h1>
           <p className="text-sidebar-foreground/80 leading-relaxed">
             จัดเก็บประวัติค่าสายตา ใบงาน เลนส์ และกรอบแว่น

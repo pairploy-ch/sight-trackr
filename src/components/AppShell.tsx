@@ -9,7 +9,7 @@ const navItems = [
   { icon: Home, label: "หน้าหลัก", to: "/" as const },
   { icon: Users, label: "ลูกค้า", to: "/customers" as const },
   // { icon: FileText, label: "ใบงาน / ใบสั่งเลนส์", to: "/" as const, hasChild: true },
-  { icon: History, label: "ประวัติลูกค้า", to: "/history" as const, hasChild: true },
+  // { icon: History, label: "ประวัติลูกค้า", to: "/history" as const, hasChild: true },
 
   { icon: BarChart3, label: "รายงาน", to: "/reports" as const, hasChild: true },
   // { icon: Package, label: "สินค้า / เลนส์", to: "/products" as const, hasChild: true },
