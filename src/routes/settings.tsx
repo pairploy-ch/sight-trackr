@@ -1,38 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell, SectionCard } from "@/components/AppShell";
-import { useState } from "react";
-import { Plus, Pencil, Trash2, X, Save, ChevronDown, ChevronRight } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import {
+  Plus, Pencil, Trash2, X, Save,
+  ChevronDown, ChevronRight, Loader2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({
-    meta: [{ title: "ตั้งค่า — MARINA OPTICAL" }],
-  }),
+  head: () => ({ meta: [{ title: "ตั้งค่า — MARINA OPTICAL" }] }),
   component: SettingsPage,
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CategoryKey =
-  | "lensTypes"
-  | "brands"
-  | "models"
-  | "indexes"
-  | "coatings"
-  | "colors";
+type CategoryKey = "lensTypes" | "brands" | "models" | "indexes" | "coatings" | "colors";
 
-interface Item {
-  id: number;
-  name: string;
-}
+interface Item { id: number; name: string; }
 
-interface SettingsData {
-  lensTypes: Item[];
-  brands:    Item[];
-  models:    Item[];
-  indexes:   Item[];
-  coatings:  Item[];
-  colors:    Item[];
-}
+type SettingsData = Record<CategoryKey, Item[]>;
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const TABLE: Record<CategoryKey, string> = {
+  lensTypes: "lens_types",
+  brands:    "lens_brands",
+  models:    "lens_models",
+  indexes:   "lens_indexes",
+  coatings:  "lens_coatings",
+  colors:    "lens_colors",
+};
 
 const CATEGORY_LABELS: Record<CategoryKey, string> = {
   lensTypes: "ประเภทเลนส์",
@@ -52,70 +49,34 @@ const CATEGORY_PLACEHOLDER: Record<CategoryKey, string> = {
   colors:    "เช่น Clear, Brown, Grey...",
 };
 
-// ─── Initial data ─────────────────────────────────────────────────────────────
-
-const INITIAL: SettingsData = {
-  lensTypes: [
-    { id: 1, name: "PROGRESSIVE (Progressive Addition Lens)" },
-    { id: 2, name: "SINGLE VISION" },
-    { id: 3, name: "BIFOCAL" },
-    { id: 4, name: "OFFICE LENS" },
-  ],
-  brands: [
-    { id: 1, name: "RODENSTOCK" },
-    { id: 2, name: "HOYA" },
-    { id: 3, name: "ZEISS" },
-    { id: 4, name: "NIKON" },
-    { id: 5, name: "ESSILOR" },
-  ],
-  models: [
-    { id: 1, name: "PROGRESSIVE Individual 2" },
-    { id: 2, name: "PROGRESSIVE Multigressiv MyView" },
-    { id: 3, name: "HOYA Harmony 3" },
-    { id: 4, name: "ZEISS Progressive Individual" },
-  ],
-  indexes: [
-    { id: 1, name: "1.50" },
-    { id: 2, name: "1.56" },
-    { id: 3, name: "1.60" },
-    { id: 4, name: "1.67" },
-    { id: 5, name: "1.74" },
-  ],
-  coatings: [
-    { id: 1, name: "Multicoat + Blue Light" },
-    { id: 2, name: "Photochromic" },
-    { id: 3, name: "Transition" },
-    { id: 4, name: "Anti-Reflection" },
-    { id: 5, name: "Hardcoat" },
-  ],
-  colors: [
-    { id: 1, name: "Clear" },
-    { id: 2, name: "Brown" },
-    { id: 3, name: "Grey" },
-    { id: 4, name: "Green" },
-    { id: 5, name: "Blue" },
-  ],
+const EMPTY: SettingsData = {
+  lensTypes: [], brands: [], models: [], indexes: [], coatings: [], colors: [],
 };
 
-// ─── Inline Edit/Add Modal ────────────────────────────────────────────────────
+// ─── Modals ───────────────────────────────────────────────────────────────────
 
 function ItemModal({
+  categoryKey,
   categoryLabel,
   initial,
   onSave,
   onClose,
 }: {
+  categoryKey: CategoryKey;
   categoryLabel: string;
   initial: Item | null;
-  onSave: (name: string) => void;
+  onSave: (name: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [error, setError] = useState("");
+  const [name, setName]     = useState(initial?.name ?? "");
+  const [error, setError]   = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) { setError("กรุณากรอกข้อมูล"); return; }
-    onSave(name.trim());
+    setSaving(true);
+    await onSave(name.trim());
+    setSaving(false);
   }
 
   return (
@@ -136,11 +97,7 @@ function ItemModal({
             value={name}
             onChange={(e) => { setName(e.target.value); setError(""); }}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            placeholder={CATEGORY_PLACEHOLDER[
-              Object.keys(CATEGORY_LABELS).find(
-                (k) => CATEGORY_LABELS[k as CategoryKey] === categoryLabel
-              ) as CategoryKey
-            ]}
+            placeholder={CATEGORY_PLACEHOLDER[categoryKey]}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           />
           {error && <p className="text-xs text-destructive">{error}</p>}
@@ -148,15 +105,18 @@ function ItemModal({
         <div className="flex gap-3 px-5 py-4 border-t border-border">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+            disabled={saving}
+            className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50"
           >
             ยกเลิก
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
           >
-            <Save className="h-4 w-4" /> บันทึก
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            บันทึก
           </button>
         </div>
       </div>
@@ -164,38 +124,45 @@ function ItemModal({
   );
 }
 
-// ─── Delete Confirm ───────────────────────────────────────────────────────────
-
 function DeleteConfirm({
   name,
   onConfirm,
   onClose,
 }: {
   name: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   onClose: () => void;
 }) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleConfirm() {
+    setDeleting(true);
+    await onConfirm();
+    setDeleting(false);
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-background shadow-xl mx-4 p-6 space-y-4">
         <h2 className="font-semibold text-foreground">ยืนยันการลบ</h2>
         <p className="text-sm text-muted-foreground">
-          ต้องการลบ{" "}
-          <span className="font-medium text-foreground">"{name}"</span>{" "}
-          ออกจากระบบ?
+          ต้องการลบ <span className="font-medium text-foreground">"{name}"</span> ออกจากระบบ?
         </p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+            disabled={deleting}
+            className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50"
           >
             ยกเลิก
           </button>
           <button
-            onClick={onConfirm}
-            className="flex-1 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 flex items-center justify-center gap-2"
+            onClick={handleConfirm}
+            disabled={deleting}
+            className="flex-1 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Trash2 className="h-4 w-4" /> ลบ
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            ลบ
           </button>
         </div>
       </div>
@@ -208,31 +175,34 @@ function DeleteConfirm({
 function CategorySection({
   categoryKey,
   items,
+  loading,
+  error,
   onAdd,
   onEdit,
   onDelete,
 }: {
   categoryKey: CategoryKey;
   items: Item[];
-  onAdd: (name: string) => void;
-  onEdit: (id: number, name: string) => void;
-  onDelete: (id: number) => void;
+  loading: boolean;
+  error: string | null;
+  onAdd: (name: string) => Promise<void>;
+  onEdit: (id: number, name: string) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   const label = CATEGORY_LABELS[categoryKey];
   const [open, setOpen]       = useState(true);
   const [modal, setModal]     = useState<"add" | Item | null>(null);
   const [delItem, setDelItem] = useState<Item | null>(null);
 
-  function handleSave(name: string) {
-    if (modal === "add") onAdd(name);
-    else if (modal && typeof modal === "object") onEdit(modal.id, name);
+  async function handleSave(name: string) {
+    if (modal === "add") await onAdd(name);
+    else if (modal && typeof modal === "object") await onEdit(modal.id, name);
     setModal(null);
   }
 
   return (
     <>
       <div className="rounded-xl border border-border overflow-hidden">
-        {/* Header */}
         <button
           onClick={() => setOpen((p) => !p)}
           className="w-full flex items-center justify-between px-5 py-4 bg-secondary/40 hover:bg-secondary/70 transition-colors"
@@ -255,10 +225,15 @@ function CategorySection({
           </button>
         </button>
 
-        {/* List */}
         {open && (
           <div>
-            {items.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...
+              </div>
+            ) : error ? (
+              <div className="px-5 py-4 text-sm text-destructive">{error}</div>
+            ) : items.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                 ยังไม่มีข้อมูล — กด "เพิ่ม" เพื่อเพิ่มรายการ
               </div>
@@ -267,8 +242,7 @@ function CategorySection({
                 {items.map((item, i) => (
                   <li
                     key={item.id}
-                    className={`flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors
-                      ${i > 0 ? "border-t border-border" : ""}`}
+                    className={`flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors ${i > 0 ? "border-t border-border" : ""}`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}</span>
@@ -298,6 +272,7 @@ function CategorySection({
 
       {modal !== null && (
         <ItemModal
+          categoryKey={categoryKey}
           categoryLabel={label}
           initial={modal === "add" ? null : modal}
           onSave={handleSave}
@@ -308,7 +283,7 @@ function CategorySection({
       {delItem && (
         <DeleteConfirm
           name={delItem.name}
-          onConfirm={() => { onDelete(delItem.id); setDelItem(null); }}
+          onConfirm={async () => { await onDelete(delItem.id); setDelItem(null); }}
           onClose={() => setDelItem(null)}
         />
       )}
@@ -319,31 +294,73 @@ function CategorySection({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function SettingsPage() {
-  const [data, setData] = useState<SettingsData>(INITIAL);
+  const [data, setData]       = useState<SettingsData>(EMPTY);
+  const [loading, setLoading] = useState<Record<CategoryKey, boolean>>(
+    Object.fromEntries(Object.keys(TABLE).map((k) => [k, true])) as Record<CategoryKey, boolean>
+  );
+  const [errors, setErrors]   = useState<Record<CategoryKey, string | null>>(
+    Object.fromEntries(Object.keys(TABLE).map((k) => [k, null])) as Record<CategoryKey, string | null>
+  );
 
-  function nextId(items: Item[]) {
-    return Math.max(0, ...items.map((i) => i.id)) + 1;
+  // ── Fetch all on mount ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    (Object.keys(TABLE) as CategoryKey[]).forEach(fetchCategory);
+  }, []);
+
+  async function fetchCategory(key: CategoryKey) {
+    setLoading((p) => ({ ...p, [key]: true }));
+    const { data: rows, error } = await supabase
+      .from(TABLE[key])
+      .select("id, name")
+      .order("id", { ascending: true });
+
+    if (error) {
+      setErrors((p) => ({ ...p, [key]: "โหลดไม่สำเร็จ: " + error.message }));
+    } else {
+      setData((p) => ({ ...p, [key]: rows ?? [] }));
+      setErrors((p) => ({ ...p, [key]: null }));
+    }
+    setLoading((p) => ({ ...p, [key]: false }));
   }
 
-  function handleAdd(key: CategoryKey, name: string) {
-    setData((prev) => ({
-      ...prev,
-      [key]: [...prev[key], { id: nextId(prev[key]), name }],
-    }));
+  // ── CRUD ──────────────────────────────────────────────────────────────────
+
+  async function handleAdd(key: CategoryKey, name: string) {
+    const { data: row, error } = await supabase
+      .from(TABLE[key])
+      .insert({ name })
+      .select("id, name")
+      .single();
+
+    if (!error && row) {
+      setData((p) => ({ ...p, [key]: [...p[key], row] }));
+    }
   }
 
-  function handleEdit(key: CategoryKey, id: number, name: string) {
-    setData((prev) => ({
-      ...prev,
-      [key]: prev[key].map((item) => (item.id === id ? { ...item, name } : item)),
-    }));
+  async function handleEdit(key: CategoryKey, id: number, name: string) {
+    const { error } = await supabase
+      .from(TABLE[key])
+      .update({ name })
+      .eq("id", id);
+
+    if (!error) {
+      setData((p) => ({
+        ...p,
+        [key]: p[key].map((item) => (item.id === id ? { ...item, name } : item)),
+      }));
+    }
   }
 
-  function handleDelete(key: CategoryKey, id: number) {
-    setData((prev) => ({
-      ...prev,
-      [key]: prev[key].filter((item) => item.id !== id),
-    }));
+  async function handleDelete(key: CategoryKey, id: number) {
+    const { error } = await supabase
+      .from(TABLE[key])
+      .delete()
+      .eq("id", id);
+
+    if (!error) {
+      setData((p) => ({ ...p, [key]: p[key].filter((item) => item.id !== id) }));
+    }
   }
 
   const categories = Object.keys(CATEGORY_LABELS) as CategoryKey[];
@@ -359,6 +376,8 @@ function SettingsPage() {
             key={key}
             categoryKey={key}
             items={data[key]}
+            loading={loading[key]}
+            error={errors[key]}
             onAdd={(name) => handleAdd(key, name)}
             onEdit={(id, name) => handleEdit(key, id, name)}
             onDelete={(id) => handleDelete(key, id)}

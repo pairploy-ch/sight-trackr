@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell, SectionCard } from "@/components/AppShell";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Search,
-  ShieldCheck, User, Mail, KeyRound, ChevronRight,
+  ShieldCheck, User, Mail, KeyRound, ChevronRight, Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/users/")({
@@ -21,15 +22,8 @@ interface Staff {
   email: string;
   password: string;
   role: "admin" | "staff";
+  created_at?: string;
 }
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const INITIAL_STAFF: Staff[] = [
-  { id: 1, name: "คุณมารินา",     email: "marina@marinaoptical.com",  password: "marina1234", role: "admin" },
-  { id: 2, name: "คุณกิตติพงศ์", email: "kitti@marinaoptical.com",   password: "kitti5678",  role: "staff" },
-  { id: 3, name: "คุณสมศรี",      email: "somsri@marinaoptical.com",  password: "somsri9012", role: "staff" },
-];
 
 // ─── Shared components ────────────────────────────────────────────────────────
 
@@ -57,15 +51,44 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function UsersPage() {
-  const [staff, setStaff]           = useState<Staff[]>(INITIAL_STAFF);
+  const [staff, setStaff]           = useState<Staff[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState<string | null>(null);
   const [search, setSearch]         = useState("");
-  const [selected, setSelected]     = useState<number>(INITIAL_STAFF[0].id);
+  const [selected, setSelected]     = useState<number | null>(null);
   const [isEditing, setIsEditing]   = useState(false);
   const [editData, setEditData]     = useState<Staff | null>(null);
   const [showPw, setShowPw]         = useState(false);
   const [showEditPw, setShowEditPw] = useState(false);
   const [deleteId, setDeleteId]     = useState<number | null>(null);
+  const [deleting, setDeleting]     = useState(false);
   const [errors, setErrors]         = useState<Record<string, string>>({});
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
+  async function fetchStaff() {
+    setLoading(true);
+    setError(null);
+    const { data, error } = await supabase
+      .from("staff")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      setError("โหลดข้อมูลไม่สำเร็จ: " + error.message);
+    } else {
+      setStaff(data ?? []);
+      if (data && data.length > 0) setSelected(data[0].id);
+    }
+    setLoading(false);
+  }
+
+  // ── Derived ────────────────────────────────────────────────────────────────
 
   const filtered = staff.filter(
     (s) =>
@@ -73,9 +96,12 @@ function UsersPage() {
       s.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const cur = staff.find((s) => s.id === selected) ?? staff[0];
+  const cur = staff.find((s) => s.id === selected) ?? null;
+
+  // ── Edit ───────────────────────────────────────────────────────────────────
 
   function startEdit() {
+    if (!cur) return;
     setEditData({ ...cur });
     setErrors({});
     setIsEditing(true);
@@ -96,22 +122,57 @@ function UsersPage() {
     return Object.keys(e).length === 0;
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!editData || !validate(editData)) return;
-    setStaff((prev) => prev.map((s) => (s.id === editData.id ? editData : s)));
-    setIsEditing(false);
-    setEditData(null);
+    setSaving(true);
+    const { error } = await supabase
+      .from("staff")
+      .update({
+        name:     editData.name,
+        email:    editData.email,
+        password: editData.password,
+        role:     editData.role,
+      })
+      .eq("id", editData.id);
+
+    if (error) {
+      setErrors({ _global: "บันทึกไม่สำเร็จ: " + error.message });
+    } else {
+      setStaff((prev) => prev.map((s) => (s.id === editData.id ? editData : s)));
+      setIsEditing(false);
+      setEditData(null);
+    }
+    setSaving(false);
   }
 
-  function handleDelete(id: number) {
-    const remaining = staff.filter((s) => s.id !== id);
-    setStaff(remaining);
-    if (selected === id && remaining.length > 0) setSelected(remaining[0].id);
+  // ── Delete ─────────────────────────────────────────────────────────────────
+
+  async function handleDelete(id: number) {
+    setDeleting(true);
+    const { error } = await supabase.from("staff").delete().eq("id", id);
+    if (error) {
+      setError("ลบไม่สำเร็จ: " + error.message);
+    } else {
+      const remaining = staff.filter((s) => s.id !== id);
+      setStaff(remaining);
+      if (selected === id) setSelected(remaining.length > 0 ? remaining[0].id : null);
+    }
+    setDeleting(false);
     setDeleteId(null);
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <AppShell title="พนักงาน" subtitle="จัดการบัญชีผู้ใช้งานในระบบ">
+      {/* Global error banner */}
+      {error && (
+        <div className="mx-6 mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive flex items-center justify-between">
+          {error}
+          <button onClick={() => setError(null)} className="ml-3 hover:opacity-70"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 p-6">
 
         {/* ── Left: Staff list ── */}
@@ -135,7 +196,11 @@ function UsersPage() {
           </div>
 
           <div className="overflow-y-auto divide-y divide-border">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">ไม่พบรายการ</div>
             ) : (
               filtered.map((s) => {
@@ -176,7 +241,7 @@ function UsersPage() {
         </div>
 
         {/* ── Right: Detail panel ── */}
-        {cur ? (
+        {loading ? null : cur ? (
           <div className="space-y-6 min-w-0">
             <SectionCard
               title={isEditing ? "แก้ไขข้อมูลพนักงาน" : cur.name}
@@ -185,15 +250,20 @@ function UsersPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={cancelEdit}
-                      className="flex items-center gap-1.5 text-sm rounded-md border border-border px-3 py-1.5 hover:bg-secondary"
+                      disabled={saving}
+                      className="flex items-center gap-1.5 text-sm rounded-md border border-border px-3 py-1.5 hover:bg-secondary disabled:opacity-50"
                     >
                       <X className="h-3.5 w-3.5" /> ยกเลิก
                     </button>
                     <button
                       onClick={saveEdit}
-                      className="flex items-center gap-1.5 text-sm rounded-md bg-primary text-primary-foreground px-3 py-1.5 hover:opacity-90"
+                      disabled={saving}
+                      className="flex items-center gap-1.5 text-sm rounded-md bg-primary text-primary-foreground px-3 py-1.5 hover:opacity-90 disabled:opacity-50"
                     >
-                      <Save className="h-3.5 w-3.5" /> บันทึก
+                      {saving
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Save className="h-3.5 w-3.5" />}
+                      บันทึก
                     </button>
                   </div>
                 ) : (
@@ -215,8 +285,12 @@ function UsersPage() {
               }
             >
               {isEditing && editData ? (
-                /* ── Edit form ── */
                 <div className="space-y-4">
+                  {errors._global && (
+                    <p className="text-xs text-destructive rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
+                      {errors._global}
+                    </p>
+                  )}
                   <div className="flex justify-center mb-2">
                     <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
                       {editData.name ? editData.name.slice(-2) : <User className="h-7 w-7 opacity-40" />}
@@ -225,21 +299,12 @@ function UsersPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs text-muted-foreground">ชื่อ-นามสกุล</label>
-                      <Input
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                        placeholder="คุณ..."
-                      />
+                      <Input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} placeholder="คุณ..." />
                       {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs text-muted-foreground">Email</label>
-                      <Input
-                        type="email"
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        placeholder="example@marinaoptical.com"
-                      />
+                      <Input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} placeholder="example@marinaoptical.com" />
                       {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                     </div>
                     <div className="space-y-1">
@@ -252,11 +317,7 @@ function UsersPage() {
                           placeholder="••••••••"
                           className="pr-10"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowEditPw((p) => !p)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
+                        <button type="button" onClick={() => setShowEditPw((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showEditPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -276,7 +337,6 @@ function UsersPage() {
                   </div>
                 </div>
               ) : (
-                /* ── View mode ── */
                 <>
                   <div className="flex items-center gap-4 mb-5">
                     <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl flex-shrink-0">
@@ -304,20 +364,13 @@ function UsersPage() {
                           <span className="font-mono">
                             {showPw ? cur.password : "•".repeat(Math.min(cur.password.length, 10))}
                           </span>
-                          <button
-                            onClick={() => setShowPw((p) => !p)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
+                          <button onClick={() => setShowPw((p) => !p)} className="text-muted-foreground hover:text-foreground">
                             {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         </div>
                       }
                     />
-                    <DetailRow
-                      icon={<User className="h-4 w-4" />}
-                      label="สิทธิ์การใช้งาน"
-                      value={cur.role === "admin" ? "ผู้ดูแลระบบ" : "พนักงาน"}
-                    />
+                    <DetailRow icon={<User className="h-4 w-4" />} label="สิทธิ์การใช้งาน" value={cur.role === "admin" ? "ผู้ดูแลระบบ" : "พนักงาน"} />
                   </div>
                 </>
               )}
@@ -345,15 +398,20 @@ function UsersPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+                disabled={deleting}
+                className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="flex-1 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 flex items-center justify-center gap-2"
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <Trash2 className="h-4 w-4" /> ลบ
+                {deleting
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Trash2 className="h-4 w-4" />}
+                ลบ
               </button>
             </div>
           </div>

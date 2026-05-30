@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Glasses, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Glasses, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase"; 
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -14,18 +15,42 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState("admin");
-  const [pwd, setPwd] = useState("");
-  const [show, setShow] = useState(false);
-  const [err, setErr] = useState("");
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd]     = useState("");
+  const [show, setShow]   = useState(false);
+  const [err, setErr]     = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user.trim() || pwd.length < 3) {
-      setErr("กรุณากรอกชื่อผู้ใช้และรหัสผ่าน");
+    if (!email.trim() || !pwd.trim()) {
+      setErr("กรุณากรอก Email และรหัสผ่าน");
       return;
     }
+
+    setLoading(true);
     setErr("");
+
+const { data, error } = await supabase
+  .from("staff")
+  .select("id, name, email, role")
+  .eq("email", email.trim())
+  .eq("password", pwd)
+  .maybeSingle();
+
+    setLoading(false);
+
+    if (error) {
+      setErr("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      return;
+    }
+    if (!data) {
+      setErr("Email หรือรหัสผ่านไม่ถูกต้อง");
+      return;
+    }
+
+    // เก็บ session ไว้ใน localStorage
+    localStorage.setItem("staff", JSON.stringify(data));
     navigate({ to: "/" });
   }
 
@@ -33,9 +58,6 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar text-sidebar-foreground">
         <div className="flex items-center gap-3">
-          {/* <div className="rounded-lg bg-sidebar-primary p-2.5">
-            <Glasses className="h-7 w-7 text-sidebar-primary-foreground" />
-          </div> */}
           <div>
             <div className="font-bold tracking-wider text-lg">MARINA OPTICAL</div>
             <div className="text-xs text-sidebar-foreground/70">VISION CARE SYSTEM</div>
@@ -76,14 +98,16 @@ function LoginPage() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">ชื่อผู้ใช้ / รหัสพนักงาน</label>
+              <label className="text-sm font-medium">Email</label>
               <div className="relative">
-                <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  value={user}
-                  onChange={(e) => setUser(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
-                  placeholder="admin"
+                  placeholder="example@marinaoptical.com"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -97,6 +121,7 @@ function LoginPage() {
                   onChange={(e) => setPwd(e.target.value)}
                   className="w-full pl-9 pr-10 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -107,25 +132,15 @@ function LoginPage() {
                 </button>
               </div>
             </div>
-            {/* <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-muted-foreground">
-                <input type="checkbox" className="rounded border-input" defaultChecked />
-                จดจำการเข้าสู่ระบบ
-              </label>
-              <Link to="/login" className="text-primary hover:underline">ลืมรหัสผ่าน?</Link>
-            </div> */}
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:opacity-90"
+            disabled={loading}
+            className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-60"
           >
-            เข้าสู่ระบบ
+            {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
           </button>
-
-          <div className="text-xs text-center text-muted-foreground">
-            ตัวอย่างเดโม — กดปุ่มเพื่อเข้าหน้าหลัก
-          </div>
         </form>
       </div>
     </div>

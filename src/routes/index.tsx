@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight,
-  CheckCircle2, Clock, Wrench, ShieldCheck, Package, Truck,
-  Glasses, ArrowUpDown, FileDown, RefreshCw,
+  CheckCircle2, Clock, Wrench, ShieldCheck, Package,
+  ArrowUpDown, FileDown, RefreshCw, Loader2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/")({
@@ -18,125 +19,47 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type OrderStatus =
-  | "รับออเดอร์แล้ว"
-  | "รอเลนส์"
-  | "กำลังประกอบ"
-  | "QC แล้ว"
-  | "พร้อมรับ"
-  | "ส่งมอบแล้ว";
+type OrderStatus = "pending" | "waiting_lens" | "in_progress" | "qc_done" | "ready" | "delivered" | "cancelled";
 
 interface Order {
   id: number;
+  job_no: number;
   customer: string;
   phone: string;
-  lensType: string;
-  brand: string;
+  lens_type: string;
+  lens_brand: string;
   total: number;
   deposit: number;
   remaining: number;
-  orderDate: string;
-  pickupDate: string;
+  date: string;
+  pickup: string;
   status: OrderStatus;
   staff: string;
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_ORDERS: Order[] = [
-  { id: 217, customer: "คุณวิเชียร เกิดสมบัติ",   phone: "082-447-8801", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 6500,  deposit: 3000, remaining: 3500, orderDate: "12/05/2567", pickupDate: "19/05/2567", status: "รอเลนส์",         staff: "คุณมารินา" },
-  { id: 216, customer: "คุณสมหญิง ประดิษฐ์ดี",    phone: "089-123-4567", lensType: "SINGLE VISION", brand: "HOYA",       total: 3200,  deposit: 1500, remaining: 1700, orderDate: "11/05/2567", pickupDate: "16/05/2567", status: "QC แล้ว",          staff: "คุณกิตติพงศ์" },
-  { id: 215, customer: "คุณประเสริฐ วงศ์ทอง",     phone: "091-234-5678", lensType: "PROGRESSIVE", brand: "ZEISS",       total: 9800,  deposit: 5000, remaining: 4800, orderDate: "10/05/2567", pickupDate: "17/05/2567", status: "กำลังประกอบ",     staff: "คุณมารินา" },
-  { id: 214, customer: "คุณนิภา สุขสวัสดิ์",      phone: "086-345-6789", lensType: "BIFOCAL",      brand: "HOYA",       total: 4500,  deposit: 2000, remaining: 2500, orderDate: "09/05/2567", pickupDate: "15/05/2567", status: "พร้อมรับ",         staff: "คุณมารินา" },
-  { id: 213, customer: "คุณอานนท์ รุ่งเรือง",     phone: "083-456-7890", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 11200, deposit: 6000, remaining: 5200, orderDate: "08/05/2567", pickupDate: "14/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
-  { id: 212, customer: "คุณสุภาพ เจริญผล",        phone: "087-567-8901", lensType: "SINGLE VISION", brand: "ZEISS",     total: 2800,  deposit: 1000, remaining: 1800, orderDate: "07/05/2567", pickupDate: "13/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
-  { id: 211, customer: "คุณชัยรัตน์ สิงห์ทอง",   phone: "092-678-9012", lensType: "OFFICE LENS",  brand: "HOYA",       total: 5600,  deposit: 2500, remaining: 3100, orderDate: "06/05/2567", pickupDate: "12/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
-  { id: 210, customer: "คุณวิไลวรรณ พรมมา",       phone: "084-789-0123", lensType: "PROGRESSIVE", brand: "RODENSTOCK", total: 8400,  deposit: 4000, remaining: 4400, orderDate: "05/05/2567", pickupDate: "11/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
-  { id: 209, customer: "คุณธนา บุญส่ง",           phone: "095-890-1234", lensType: "BIFOCAL",      brand: "ZEISS",      total: 6100,  deposit: 3000, remaining: 3100, orderDate: "04/05/2567", pickupDate: "10/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
-  { id: 208, customer: "คุณมาลี อินทะวงศ์",       phone: "081-901-2345", lensType: "SINGLE VISION", brand: "HOYA",      total: 1900,  deposit: 1000, remaining:  900, orderDate: "03/05/2567", pickupDate: "09/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
-  { id: 207, customer: "คุณพิชัย สุขสันต์",       phone: "098-012-3456", lensType: "PROGRESSIVE", brand: "ZEISS",       total: 12500, deposit: 6000, remaining: 6500, orderDate: "02/05/2567", pickupDate: "08/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณกิตติพงศ์" },
-  { id: 206, customer: "คุณรัตนา ศรีวิชัย",       phone: "085-123-4560", lensType: "OFFICE LENS",  brand: "HOYA",       total: 3800,  deposit: 2000, remaining: 1800, orderDate: "01/05/2567", pickupDate: "07/05/2567", status: "ส่งมอบแล้ว",        staff: "คุณมารินา" },
-  { id: 218, customer: "คุณสมศักดิ์ บัวทอง",      phone: "088-234-5671", lensType: "PROGRESSIVE", brand: "HOYA",        total: 7200,  deposit: 3500, remaining: 3700, orderDate: "13/05/2567", pickupDate: "20/05/2567", status: "รับออเดอร์แล้ว",   staff: "คุณมารินา" },
-  { id: 219, customer: "คุณกนกวรรณ ดีมาก",        phone: "090-345-6782", lensType: "SINGLE VISION", brand: "RODENSTOCK", total: 4100, deposit: 2000, remaining: 2100, orderDate: "13/05/2567", pickupDate: "18/05/2567", status: "รับออเดอร์แล้ว",   staff: "คุณกิตติพงศ์" },
-];
-
-// ─── Export Excel ─────────────────────────────────────────────────────────────
-
-function exportToExcel(rows: Order[]) {
-  // Map to Thai headers
-  const data = rows.map((o) => ({
-    "เลขใบงาน": o.id,
-    "วันที่สั่ง": o.orderDate,
-    "ชื่อลูกค้า": o.customer,
-    "เบอร์โทร": o.phone,
-    "ประเภทเลนส์": o.lensType,
-    "ยี่ห้อ": o.brand,
-    "ยอดรวม (บาท)": o.total,
-    "มัดจำ (บาท)": o.deposit,
-    "คงเหลือ (บาท)": o.remaining,
-    "วันนัดรับ": o.pickupDate,
-    "สถานะ": o.status,
-    "ผู้รับงาน": o.staff,
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(data);
-
-  // Column widths
-  ws["!cols"] = [
-    { wch: 10 }, { wch: 14 }, { wch: 24 }, { wch: 14 },
-    { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 12 },
-    { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 },
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "ใบงาน");
-
-  // Summary sheet
-  const summary = [
-    { "รายการ": "ใบงานทั้งหมด",      "จำนวน": rows.length },
-    { "รายการ": "ยอดรวมทั้งหมด (บาท)", "จำนวน": rows.reduce((s, o) => s + o.total, 0) },
-    { "รายการ": "รับมัดจำแล้ว (บาท)",  "จำนวน": rows.reduce((s, o) => s + o.deposit, 0) },
-    { "รายการ": "ยังค้างชำระ (บาท)",   "จำนวน": rows.reduce((s, o) => s + o.remaining, 0) },
-  ];
-  const wsSummary = XLSX.utils.json_to_sheet(summary);
-  wsSummary["!cols"] = [{ wch: 24 }, { wch: 16 }];
-  XLSX.utils.book_append_sheet(wb, wsSummary, "สรุป");
-
-  // Filename with date
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  XLSX.writeFile(wb, `marina-optical-orders-${dateStr}.xlsx`);
-}
-
 // ─── Status config ────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<OrderStatus, {
-  icon: React.ReactNode;
-  bg: string;
-  text: string;
-  border: string;
-}> = {
-  "รับออเดอร์แล้ว": { icon: <Clock className="h-3.5 w-3.5" />,       bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200"   },
-  "รอเลนส์":        { icon: <RefreshCw className="h-3.5 w-3.5" />,    bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200"  },
-  "กำลังประกอบ":    { icon: <Wrench className="h-3.5 w-3.5" />,       bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  "QC แล้ว":        { icon: <ShieldCheck className="h-3.5 w-3.5" />,  bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-  "พร้อมรับ":       { icon: <Package className="h-3.5 w-3.5" />,      bg: "bg-teal-50",   text: "text-teal-700",   border: "border-teal-200"   },
-  "ส่งมอบแล้ว":     { icon: <CheckCircle2 className="h-3.5 w-3.5" />, bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200"  },
+const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: React.ReactNode; bg: string; text: string; border: string }> = {
+  pending:      { label: "รับออเดอร์แล้ว", icon: <Clock className="h-3.5 w-3.5" />,       bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200"   },
+  waiting_lens: { label: "รอเลนส์",         icon: <RefreshCw className="h-3.5 w-3.5" />,    bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200"  },
+  in_progress:  { label: "กำลังประกอบ",     icon: <Wrench className="h-3.5 w-3.5" />,       bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  qc_done:      { label: "QC แล้ว",          icon: <ShieldCheck className="h-3.5 w-3.5" />,  bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  ready:        { label: "พร้อมรับ",         icon: <Package className="h-3.5 w-3.5" />,      bg: "bg-teal-50",   text: "text-teal-700",   border: "border-teal-200"   },
+  delivered:    { label: "ส่งมอบแล้ว",       icon: <CheckCircle2 className="h-3.5 w-3.5" />, bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200"  },
+  cancelled:    { label: "ยกเลิก",           icon: <Clock className="h-3.5 w-3.5" />,        bg: "bg-gray-50",   text: "text-gray-500",   border: "border-gray-200"   },
 };
 
-const ALL_STATUSES: OrderStatus[] = [
-  "รับออเดอร์แล้ว", "รอเลนส์", "กำลังประกอบ", "QC แล้ว", "พร้อมรับ", "ส่งมอบแล้ว",
-];
+const ALL_STATUSES = Object.keys(STATUS_CONFIG) as OrderStatus[];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: OrderStatus }) {
-  const cfg = STATUS_CONFIG[status];
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-      {cfg.icon}{status}
+      {cfg.icon}{cfg.label}
     </span>
   );
 }
@@ -151,34 +74,108 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   );
 }
 
+function exportToExcel(rows: Order[]) {
+  const data = rows.map((o) => ({
+    "เลขใบงาน":       o.job_no,
+    "วันที่สั่ง":     o.date,
+    "ชื่อลูกค้า":     o.customer,
+    "เบอร์โทร":       o.phone,
+    "ประเภทเลนส์":    o.lens_type,
+    "ยี่ห้อ":         o.lens_brand,
+    "ยอดรวม (บาท)":   o.total,
+    "มัดจำ (บาท)":    o.deposit,
+    "คงเหลือ (บาท)":  o.remaining,
+    "วันนัดรับ":      o.pickup,
+    "สถานะ":          STATUS_CONFIG[o.status]?.label ?? o.status,
+   
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws["!cols"] = [{ wch: 10 },{ wch: 14 },{ wch: 24 },{ wch: 14 },{ wch: 16 },{ wch: 12 },{ wch: 14 },{ wch: 12 },{ wch: 14 },{ wch: 14 },{ wch: 18 },{ wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "ใบงาน");
+  const summary = [
+    { "รายการ": "ใบงานทั้งหมด",        "จำนวน": rows.length },
+    { "รายการ": "ยอดรวมทั้งหมด (บาท)", "จำนวน": rows.reduce((s, o) => s + o.total, 0) },
+    { "รายการ": "รับมัดจำแล้ว (บาท)",  "จำนวน": rows.reduce((s, o) => s + o.deposit, 0) },
+    { "รายการ": "ยังค้างชำระ (บาท)",   "จำนวน": rows.reduce((s, o) => s + o.remaining, 0) },
+  ];
+  const wsSummary = XLSX.utils.json_to_sheet(summary);
+  wsSummary["!cols"] = [{ wch: 24 },{ wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "สรุป");
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}`;
+  XLSX.writeFile(wb, `marina-optical-orders-${dateStr}.xlsx`);
+}
+
 const PAGE_SIZE = 10;
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 function Index() {
-  const [search, setSearch] = useState("");
+  const [orders, setOrders]     = useState<Order[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  const [search, setSearch]           = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "ทั้งหมด">("ทั้งหมด");
-  const [staffFilter, setStaffFilter] = useState("ทั้งหมด");
-  const [sortKey, setSortKey] = useState<keyof Order>("id");
-  const [sortAsc, setSortAsc] = useState(false);
-  const [page, setPage] = useState(1);
-  const [exporting, setExporting] = useState(false);
+  const [staffFilter, setStaffFilter]   = useState("ทั้งหมด");
+  const [sortKey, setSortKey]           = useState<keyof Order>("job_no");
+  const [sortAsc, setSortAsc]           = useState(false);
+  const [page, setPage]                 = useState(1);
+  const [exporting, setExporting]       = useState(false);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("visits")
+        .select("*, customers(name, phone)")
+        .order("job_no", { ascending: false });
+
+      if (!error && data) {
+        setOrders(data.map((v) => {
+          const c = v.customers as any;
+          const total   = v.price   ?? 0;
+          const deposit = v.deposit ?? 0;
+          return {
+            id:         v.id,
+            job_no:     v.job_no,
+            customer:   c?.name  ?? "—",
+            phone:      c?.phone ?? "—",
+            lens_type:  v.lens_type  ?? "—",
+            lens_brand: v.lens_brand ?? "—",
+            total,
+            deposit,
+            remaining:  Math.max(0, total - deposit),
+            date:       v.date   ?? "",
+            pickup:     v.pickup ?? "",
+            status:     (v.status as OrderStatus) ?? "pending",
+            staff:      v.staff  ?? "—",
+          };
+        }));
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   const staffList = useMemo(
-    () => ["ทั้งหมด", ...Array.from(new Set(MOCK_ORDERS.map((o) => o.staff)))],
-    [],
+    () => ["ทั้งหมด", ...Array.from(new Set(orders.map((o) => o.staff).filter((s) => s !== "—")))],
+    [orders],
   );
 
   const filtered = useMemo(() => {
-    let rows = [...MOCK_ORDERS];
+    let rows = [...orders];
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      rows = rows.filter(
-        (o) => o.customer.toLowerCase().includes(q) || String(o.id).includes(q) || o.phone.includes(q),
+      rows = rows.filter((o) =>
+        o.customer.toLowerCase().includes(q) ||
+        String(o.job_no).includes(q) ||
+        o.phone.includes(q),
       );
     }
     if (statusFilter !== "ทั้งหมด") rows = rows.filter((o) => o.status === statusFilter);
-    if (staffFilter !== "ทั้งหมด") rows = rows.filter((o) => o.staff === staffFilter);
+    if (staffFilter !== "ทั้งหมด")  rows = rows.filter((o) => o.staff  === staffFilter);
     rows.sort((a, b) => {
       const av = a[sortKey] as string | number;
       const bv = b[sortKey] as string | number;
@@ -186,10 +183,10 @@ function Index() {
       return sortAsc ? cmp : -cmp;
     });
     return rows;
-  }, [search, statusFilter, staffFilter, sortKey, sortAsc]);
+  }, [orders, search, statusFilter, staffFilter, sortKey, sortAsc]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function toggleSort(key: keyof Order) {
     if (sortKey === key) setSortAsc((p) => !p);
@@ -199,37 +196,29 @@ function Index() {
 
   function handleExport() {
     setExporting(true);
-    // small delay so button state updates before heavy xlsx work
-    setTimeout(() => {
-      exportToExcel(filtered);
-      setExporting(false);
-    }, 50);
+    setTimeout(() => { exportToExcel(filtered); setExporting(false); }, 50);
   }
 
-  const inProgress = MOCK_ORDERS.filter((o) => o.status !== "ส่งมอบแล้ว").length;
-  const readyToPickup = MOCK_ORDERS.filter((o) => o.status === "พร้อมรับ").length;
-  const totalRevenue = MOCK_ORDERS.reduce((s, o) => s + o.total, 0);
+  const inProgress    = orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length;
+  const readyToPickup = orders.filter((o) => o.status === "ready").length;
+  const totalRevenue  = orders.reduce((s, o) => s + o.total, 0);
 
   return (
     <AppShell
-      title={
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold text-primary leading-none">MARINA OPTICAL</span>
-        </div>
-      }
+      title={<span className="text-2xl font-bold text-primary leading-none">MARINA OPTICAL</span>}
       subtitle="รายการใบงานทั้งหมด"
     >
       <div className="p-6 space-y-6">
 
-        {/* ── Summary stats ── */}
+        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="ใบงานทั้งหมด"   value={MOCK_ORDERS.length} sub="รายการ" />
-          <StatCard label="กำลังดำเนินการ" value={inProgress}         sub="รายการ" />
-          <StatCard label="พร้อมรับแล้ว"   value={readyToPickup}      sub="รอลูกค้า" />
-          <StatCard label="ยอดรวมเดือนนี้" value={`${totalRevenue.toLocaleString()} ฿`} sub="พ.ค. 2567" />
+          <StatCard label="ใบงานทั้งหมด"   value={orders.length}                          sub="รายการ"  />
+          <StatCard label="กำลังดำเนินการ" value={inProgress}                             sub="รายการ"  />
+          <StatCard label="พร้อมรับแล้ว"   value={readyToPickup}                          sub="รอลูกค้า" />
+          <StatCard label="ยอดรวมทั้งหมด"  value={`${totalRevenue.toLocaleString()} ฿`}  sub="ทุกใบงาน" />
         </div>
 
-        {/* ── Filters ── */}
+        {/* Filters */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
@@ -242,7 +231,7 @@ function Index() {
                 className="w-full rounded-lg border border-input bg-background pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
               <select
                 value={staffFilter}
@@ -251,31 +240,29 @@ function Index() {
               >
                 {staffList.map((s) => <option key={s}>{s}</option>)}
               </select>
-            </div>
+            </div> */}
             <div className="ml-auto flex gap-3">
-              {/* ── Export button ── */}
               <button
                 onClick={handleExport}
                 disabled={exporting || filtered.length === 0}
-                className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FileDown className={`h-4 w-4 ${exporting ? "animate-bounce" : ""}`} />
-                {exporting ? "กำลังส่งออก…" : `ส่งออก Excel${filtered.length < MOCK_ORDERS.length ? ` (${filtered.length})` : ""}`}
+                {exporting ? "กำลังส่งออก…" : `ส่งออก Excel${filtered.length < orders.length ? ` (${filtered.length})` : ""}`}
               </button>
-              <Link
-                to="/jobs/new"
-                className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow hover:opacity-90"
-              >
+              <Link to="/jobs/new" className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow hover:opacity-90">
                 <Plus className="h-4 w-4" /> สร้างใบงานใหม่
               </Link>
             </div>
           </div>
 
-          {/* Status filter pills */}
+          {/* Status pills */}
           <div className="flex flex-wrap gap-2">
             {(["ทั้งหมด", ...ALL_STATUSES] as const).map((s) => {
               const isActive = statusFilter === s;
-              const count = s === "ทั้งหมด" ? MOCK_ORDERS.length : MOCK_ORDERS.filter((o) => o.status === s).length;
+              const count = s === "ทั้งหมด"
+                ? orders.length
+                : orders.filter((o) => o.status === s).length;
               return (
                 <button
                   key={s}
@@ -283,9 +270,8 @@ function Index() {
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors
                     ${isActive ? "bg-primary text-primary-foreground border-primary shadow-sm" : "border-border text-muted-foreground hover:bg-secondary"}`}
                 >
-                  {s}
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold
-                    ${isActive ? "bg-white/20 text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                  {s === "ทั้งหมด" ? "ทั้งหมด" : STATUS_CONFIG[s as OrderStatus].label}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? "bg-white/20 text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
                     {count}
                   </span>
                 </button>
@@ -294,28 +280,29 @@ function Index() {
           </div>
         </div>
 
-        {/* ── Table ── */}
+        {/* Table */}
         <div className="rounded-xl border border-border overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" /> กำลังโหลด...
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary/70 text-secondary-foreground">
                 <tr>
                   {[
-                    { label: "เลขใบงาน",    key: "id"          as keyof Order, w: "w-24" },
-                    { label: "วันที่",       key: "orderDate"   as keyof Order, w: "w-28" },
-                    { label: "ลูกค้า",      key: "customer"    as keyof Order, w: ""     },
-                    { label: "ประเภทเลนส์", key: "lensType"    as keyof Order, w: "w-40" },
-                    { label: "สถานะ",       key: "status"      as keyof Order, w: "w-40" },
-                    { label: "ยอดรวม",      key: "total"       as keyof Order, w: "w-28" },
-                    { label: "คงเหลือ",     key: "remaining"   as keyof Order, w: "w-28" },
-                    { label: "นัดรับ",      key: "pickupDate"  as keyof Order, w: "w-28" },
-                    { label: "ผู้รับงาน",   key: "staff"       as keyof Order, w: "w-28" },
+                    { label: "เลขใบงาน",    key: "job_no"    as keyof Order, w: "w-24" },
+                    { label: "วันที่",       key: "date"      as keyof Order, w: "w-28" },
+                    { label: "ลูกค้า",      key: "customer"  as keyof Order, w: ""     },
+                    { label: "ประเภทเลนส์", key: "lens_type" as keyof Order, w: "w-40" },
+                    { label: "สถานะ",       key: "status"    as keyof Order, w: "w-40" },
+                    { label: "ยอดรวม",      key: "total"     as keyof Order, w: "w-28" },
+                    { label: "คงเหลือ",     key: "remaining" as keyof Order, w: "w-28" },
+                    { label: "นัดรับ",      key: "pickup"    as keyof Order, w: "w-28" },
+               
                   ].map(({ label, key, w }) => (
-                    <th
-                      key={key}
-                      onClick={() => toggleSort(key)}
-                      className={`px-4 py-3 text-left font-medium cursor-pointer select-none hover:bg-secondary group ${w}`}
-                    >
+                    <th key={key} onClick={() => toggleSort(key)} className={`px-4 py-3 text-left font-medium cursor-pointer select-none hover:bg-secondary group ${w}`}>
                       <span className="inline-flex items-center gap-1">
                         {label}
                         <ArrowUpDown className={`h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity ${sortKey === key ? "opacity-100 text-primary" : ""}`} />
@@ -337,29 +324,23 @@ function Index() {
                   paginated.map((order, i) => (
                     <tr key={order.id} className={`border-t border-border hover:bg-secondary/50 transition-colors ${i % 2 === 0 ? "" : "bg-secondary/20"}`}>
                       <td className="px-4 py-3 font-bold text-primary">
-                        <Link to="/jobs/$id" params={{ id: String(order.id) }} className="hover:underline">
-                          #{order.id}
-                        </Link>
+                        <Link to="/jobs/$id" params={{ id: String(order.job_no) }} className="hover:underline">#{order.job_no}</Link>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.orderDate}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.date}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground">{order.customer}</div>
                         <div className="text-xs text-muted-foreground">{order.phone}</div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.lensType}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.lens_type}</td>
                       <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                       <td className="px-4 py-3 text-right font-semibold">{order.total.toLocaleString()}</td>
                       <td className={`px-4 py-3 text-right font-semibold ${order.remaining > 0 ? "text-destructive" : "text-green-600"}`}>
                         {order.remaining.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.pickupDate}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.staff}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.pickup}</td>
+                      {/* <td className="px-4 py-3 text-muted-foreground">{order.staff}</td> */}
                       <td className="px-4 py-3">
-                        <Link
-                          to="/jobs/$id"
-                          params={{ id: String(order.id) }}
-                          className="rounded-md border border-primary text-primary px-3 py-1 text-xs font-medium hover:bg-primary/10 transition-colors"
-                        >
+                        <Link to="/jobs/$id" params={{ id: String(order.job_no) }} className="rounded-md border border-primary text-primary px-3 py-1 text-xs font-medium hover:bg-primary/10 transition-colors">
                           เปิด
                         </Link>
                       </td>
@@ -369,18 +350,16 @@ function Index() {
               </tbody>
             </table>
           </div>
+          )}
 
-          {/* ── Pagination ── */}
+          {/* Pagination */}
+          {!loading && (
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-secondary/40 px-4 py-3">
             <p className="text-xs text-muted-foreground">
               แสดง {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} จาก {filtered.length} รายการ
             </p>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -392,27 +371,19 @@ function Index() {
                 }, [])
                 .map((n, i) =>
                   n === "…" ? (
-                    <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">…</span>
+                    <span key={`e-${i}`} className="px-2 text-muted-foreground">…</span>
                   ) : (
-                    <button
-                      key={n}
-                      onClick={() => setPage(n as number)}
-                      className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors
-                        ${page === n ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground hover:bg-secondary"}`}
-                    >
+                    <button key={n} onClick={() => setPage(n as number)} className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${page === n ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground hover:bg-secondary"}`}>
                       {n}
                     </button>
                   ),
                 )}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-md border border-border px-2 py-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
     </AppShell>
